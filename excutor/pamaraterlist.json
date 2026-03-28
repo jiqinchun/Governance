@@ -1,0 +1,70 @@
+{
+    "net": {
+        "GossipSubD": {
+            "now": 6,
+            "max": 255,
+            "min": 0
+        },
+        "GossipSubDlo": {
+            "now": 5,
+            "max": 255,
+            "min": 0
+        },
+        "GossipSubDhi": {
+            "now": 12,
+            "max": 255,
+            "min": 0
+        },
+        "GossipThreshold": {
+            "now": -10
+        },
+        "GraylistThreshold": {
+            "now": -10000
+        }
+    },
+    "execution": {
+        "ModHeight": {
+            "now": 100
+        },
+        "InitialDifficulty": {
+            "now": 100
+        },
+        "TargetPowRatio": {
+            "now": [3, 10]
+        },
+        "MinPowGas": {
+            "now": 1000000
+        },
+        "InitialGas": {
+            "now": 10000000
+        },
+        "MaxPowGas": {
+            "now": 100000000
+        },
+        "MinPrice": {
+            "now": 100,
+            "max": "MaxPrice"
+        },
+        "MaxPrice": {
+            "now": 10000,
+            "min": "MinPrice"
+        },
+        "Alpha": {
+            "now": [1, 2]
+        },
+        "Fmin": {
+            "now": [4, 5],
+            "max": "Fmax"
+        },
+        "Fmax": {
+            "now": [6, 5],
+            "min": "Fmin"
+        },
+        "Kp": {
+            "now": [1, 10]
+        },
+        "Ki": {
+            "now": [1, 100]
+        }
+    }
+}

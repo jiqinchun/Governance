@@ -1,0 +1,4 @@
+gql
+requests
+requests_toolbelt
+web3

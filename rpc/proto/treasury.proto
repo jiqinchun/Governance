@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package treasury;
+
+option go_package = "treasury/rpc/pb";
+
+// TreasuryService 定义国库对外暴露的 RPC 服务接口
+service TreasuryService {
+    // 资金流入 - 处理区块奖励等资金进入国库
+    rpc Deposit(DepositRequest) returns (DepositResponse);
+    
+    // 资金流出 - 从国库转出资金
+    rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+    
+    // 提交支出请求 - 提交待审批的支出请求
+    rpc SubmitSpendRequest(SubmitSpendRequestRequest) returns (SubmitSpendRequestResponse);
+    
+    // 执行支出 - 执行规则评估后的资金流出
+    rpc ExecuteOutflow(ExecuteOutflowRequest) returns (ExecuteOutflowResponse);
+    
+    // 查询余额 - 查询国库当前余额
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+    
+    // 查询待处理请求 - 获取所有待处理的支出请求
+    rpc GetPendingRequests(GetPendingRequestsRequest) returns (GetPendingRequestsResponse);
+    
+    // 查询国库状态 - 获取国库完整状态信息
+    rpc GetTreasuryState(GetTreasuryStateRequest) returns (GetTreasuryStateResponse);
+    
+    // 查询交易历史 - 查询资金流动历史记录
+    rpc GetTransactionHistory(GetTransactionHistoryRequest) returns (GetTransactionHistoryResponse);
+}
+
+// ========== 通用消息 ==========
+
+// CoinbaseMetadata 区块奖励元数据
+message CoinbaseMetadata {
+    uint64 block_height = 1;    // 区块高度
+    string producer = 2;         // 出块节点
+    string reference = 3;        // 引用标识
+    string memo = 4;             // 备注
+    map<string, string> extra = 5; // 扩展字段
+}
+
+// SpendRequest 支出请求
+message SpendRequest {
+    string id = 1;               // 请求ID
+    string to = 2;               // 接收地址
+    uint64 amount = 3;           // 金额（BCI最小单位）
+    int32 priority = 4;          // 优先级
+    string memo = 5;             // 备注
+    map<string, string> metadata = 6; // 元数据
+}
+
+// TransferInstruction 转账指令
+message TransferInstruction {
+    string request_id = 1;       // 关联请求ID
+    string to = 2;               // 接收地址
+    uint64 amount = 3;           // 金额
+    string memo = 4;             // 备注
+    string rule_id = 5;          // 规则ID
+}
+
+// TransferMetadata 转账元数据
+message TransferMetadata {
+    string reason = 1;           // 转账原因
+    repeated string rule_ids = 2;     // 规则ID列表
+    repeated string request_ids = 3;  // 请求ID列表
+    string operator = 4;         // 操作者
+    string reference = 5;        // 引用标识
+    string memo = 6;             // 备注
+}
+
+// ========== 资金流入 ==========
+
+// DepositRequest 资金流入请求
+message DepositRequest {
+    uint64 amount = 1;           // 流入金额
+    CoinbaseMetadata metadata = 2; // 元数据
+}
+
+// DepositResponse 资金流入响应
+message DepositResponse {
+    bool success = 1;            // 是否成功
+    string tx_id = 2;            // 交易ID
+    string message = 3;          // 消息
+    uint64 new_balance = 4;      // 新余额
+}
+
+// ========== 资金流出 ==========
+
+// WithdrawRequest 资金流出请求（直接转账）
+message WithdrawRequest {
+    string to = 1;               // 接收地址
+    uint64 amount = 2;           // 金额
+    TransferMetadata metadata = 3; // 元数据
+}
+
+// WithdrawResponse 资金流出响应
+message WithdrawResponse {
+    bool success = 1;            // 是否成功
+    string tx_id = 2;            // 交易ID
+    string message = 3;          // 消息
+    uint64 remaining_balance = 4; // 剩余余额
+}
+
+// ========== 提交支出请求 ==========
+
+// SubmitSpendRequestRequest 提交支出请求
+message SubmitSpendRequestRequest {
+    SpendRequest request = 1;    // 支出请求
+}
+
+// SubmitSpendRequestResponse 提交支出请求响应
+message SubmitSpendRequestResponse {
+    bool success = 1;            // 是否成功
+    string request_id = 2;       // 请求ID
+    string message = 3;          // 消息
+}
+
+// ========== 执行支出 ==========
+
+// ExecuteOutflowRequest 执行支出请求
+message ExecuteOutflowRequest {
+    TransferMetadata metadata = 1; // 元数据
+}
+
+// ExecuteOutflowResponse 执行支出响应
+message ExecuteOutflowResponse {
+    bool success = 1;            // 是否成功
+    string tx_id = 2;            // 交易ID
+    uint64 total_amount = 3;     // 总金额
+    repeated TransferInstruction instructions = 4; // 执行的指令
+    repeated string rule_ids = 5;     // 规则ID列表
+    repeated string request_ids = 6;  // 请求ID列表
+    string message = 7;          // 消息
+}
+
+// ========== 查询余额 ==========
+
+// GetBalanceRequest 查询余额请求
+message GetBalanceRequest {
+    string address = 1;          // 地址（可选，默认查询国库地址）
+}
+
+// GetBalanceResponse 查询余额响应
+message GetBalanceResponse {
+    bool success = 1;            // 是否成功
+    string address = 2;          // 地址
+    uint64 balance = 3;          // 余额
+    string message = 4;          // 消息
+}
+
+// ========== 查询待处理请求 ==========
+
+// GetPendingRequestsRequest 查询待处理请求
+message GetPendingRequestsRequest {
+    int32 limit = 1;             // 限制数量（0表示全部）
+    int32 offset = 2;            // 偏移量
+}
+
+// GetPendingRequestsResponse 查询待处理请求响应
+message GetPendingRequestsResponse {
+    bool success = 1;            // 是否成功
+    repeated SpendRequest requests = 2; // 待处理请求列表
+    int32 total = 3;             // 总数
+    string message = 4;          // 消息
+}
+
+// ========== 查询国库状态 ==========
+
+// GetTreasuryStateRequest 查询国库状态请求
+message GetTreasuryStateRequest {}
+
+// GetTreasuryStateResponse 查询国库状态响应
+message GetTreasuryStateResponse {
+    bool success = 1;            // 是否成功
+    string system_address = 2;   // 系统地址
+    uint64 balance = 3;          // 当前余额
+    int32 pending_count = 4;     // 待处理请求数量
+    uint64 pending_total = 5;    // 待处理请求总金额
+    string message = 6;          // 消息
+}
+
+// ========== 查询交易历史 ==========
+
+// TransactionRecord 交易记录
+message TransactionRecord {
+    string tx_id = 1;            // 交易ID
+    string type = 2;             // 类型: "inflow" | "outflow"
+    uint64 amount = 3;           // 金额
+    string from = 4;             // 来源地址
+    string to = 5;               // 目标地址
+    int64 timestamp = 6;         // 时间戳
+    string memo = 7;             // 备注
+    map<string, string> metadata = 8; // 元数据
+}
+
+// GetTransactionHistoryRequest 查询交易历史请求
+message GetTransactionHistoryRequest {
+    string type = 1;             // 类型过滤（可选）: "inflow" | "outflow" | ""（全部）
+    int64 start_time = 2;        // 开始时间（可选）
+    int64 end_time = 3;          // 结束时间（可选）
+    int32 limit = 4;             // 限制数量
+    int32 offset = 5;            // 偏移量
+}
+
+// GetTransactionHistoryResponse 查询交易历史响应
+message GetTransactionHistoryResponse {
+    bool success = 1;            // 是否成功
+    repeated TransactionRecord records = 2; // 交易记录
+    int32 total = 3;             // 总数
+    string message = 4;          // 消息
+}

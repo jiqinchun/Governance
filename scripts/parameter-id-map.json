@@ -1,0 +1,17 @@
+{
+  "0x57f272537cd3019b9101148fb1350f23f1d89066b1d7582472ccac3507f96d86": {
+    "name": "maxFileSize",
+    "zone": "storage",
+    "valueType": "uint256"
+  },
+  "0x71c59234b929e153cdd3eb30b70fb55ad7a5fa8436dac87a5273944150557162": {
+    "name": "replicationFactor",
+    "zone": "storage",
+    "valueType": "uint256"
+  },
+  "0xe8a5e246d8e9e4972b0cfbef4a3e318333b6fea3e89ecc00d850a1b4225749bb": {
+    "name": "shardSize",
+    "zone": "storage",
+    "valueType": "uint256"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "network": "PunkChain",
+  "chainId": 20251101,
+  "deployer": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
+  "contracts": {
+    "GovernanceToken": "0xE5523cB4885b6861B9D425439cb7F1DC0DcB588b",
+    "Treasury": "0x1Ea2ae5aDB30A0b12277556Fb1943DF3F2ce90E8",
+    "ParameterRegistry": "0x6894570452eF3f516320f1Eb38D9F211893FC2B8"
+  },
+  "timestamp": "2026-02-06T08:01:28.851Z"
+}
