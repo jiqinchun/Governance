@@ -61,13 +61,18 @@ async function main() {
     { name: "shardSize", level: ParameterLevel.INFRASTRUCTURE, initialValue: 1024 * 1024 * 64 }
   ];
 
+  const CATEGORY_EXECUTION = ethers.encodeBytes32String("execution");
+  const executionParams = [
+    { name: "minPowGas", level: ParameterLevel.SYSTEM, initialValue: 1000000 }
+  ];
+
   for (const param of storageParams) {
     const paramId = generateParameterId(param.name, CATEGORY_STORAGE);
     const encodedValue = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [param.initialValue]);
 
     const info = await paramRegistry.parameters(paramId);
     if (info.isRegistered) {
-      console.log(`- ${param.name} already registered`);
+      console.log(`- ${param.name} (storage) already registered`);
       continue;
     }
 
@@ -79,7 +84,28 @@ async function main() {
       encodedValue
     );
     await tx.wait();
-    console.log(`- ${param.name} registered`);
+    console.log(`- ${param.name} (storage) registered`);
+  }
+
+  for (const param of executionParams) {
+    const paramId = generateParameterId(param.name, CATEGORY_EXECUTION);
+    const encodedValue = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [param.initialValue]);
+
+    const info = await paramRegistry.parameters(paramId);
+    if (info.isRegistered) {
+      console.log(`- ${param.name} (execution) already registered`);
+      continue;
+    }
+
+    const tx = await paramRegistry.registerParameter(
+      paramId,
+      param.name,
+      param.level,
+      CATEGORY_EXECUTION,
+      encodedValue
+    );
+    await tx.wait();
+    console.log(`- ${param.name} (execution) registered`);
   }
 
   console.log("Minting governance tokens...");

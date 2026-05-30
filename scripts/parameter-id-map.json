@@ -13,5 +13,10 @@
     "name": "shardSize",
     "zone": "storage",
     "valueType": "uint256"
+  },
+  "0x15f298dc9d2ce3a2f3413983d68df58c44669b50babaf62ccddd7d4700e2cb85": {
+    "name": "minPowGas",
+    "zone": "execution",
+    "valueType": "uint256"
   }
 }

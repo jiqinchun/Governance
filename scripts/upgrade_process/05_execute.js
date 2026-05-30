@@ -20,19 +20,11 @@ const ProposalState = {
  * 辅助函数：等待到指定区块时间
  * 在不支持 evm_increaseTime 的链上，用真实时间等待
  */
-async function waitUntil(provider, signer, targetTimestamp, maxWaitSeconds = 180) {
+async function waitUntil(provider, signer, targetTimestamp, maxWaitSeconds = 300) {
   let latestBlock = await provider.getBlock("latest");
   let now = latestBlock.timestamp;
-  const diff = targetTimestamp - now;
 
-  if (diff <= 0) return;
-
-  if (diff > maxWaitSeconds) {
-    console.log(
-      `   ⚠️ 链不支持 evm_increaseTime，需要等待约 ${diff} 秒。请到达时间后重新运行脚本。`
-    );
-    process.exit(1);
-  }
+  if (targetTimestamp <= now) return;
 
   console.log(`   ⏳ 目标时间: ${new Date(targetTimestamp * 1000).toISOString()}`);
 
@@ -93,7 +85,7 @@ async function main() {
     provider,
     deployer,
     VOTING_PERIOD + 1,
-    Number(proposalDetails.endTime)
+    Number(proposalDetails.endTime) + 1
   );
   const currentState = await paramRegistry.getProposalState(proposalId);
 

@@ -8,12 +8,12 @@ const STATE_PATH = path.join(__dirname, "offchain-executor-state.json");
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 10_000);
 const CONFIRMATIONS = Number(process.env.CONFIRMATIONS || 1);
-const START_BLOCK = Number(process.env.START_BLOCK || 0);
+const START_BLOCK = Number(process.env.START_BLOCK || 710);
 const RUN_ONCE = process.env.RUN_ONCE === "1";
 const DRY_RUN = process.env.DRY_RUN === "1";
 
-const RPC_METHOD = process.env.EXECUTOR_RPC_METHOD || "governance.applyParameterUpdate";
-const RPC_URLS = (process.env.EXECUTOR_RPC_URLS || "http://127.0.0.1:9090/rpc")
+const RPC_METHOD = process.env.EXECUTOR_RPC_METHOD || "governance_applyParameterUpdate";
+const RPC_URLS = (process.env.EXECUTOR_RPC_URLS || "http://47.243.174.71:36054")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -29,7 +29,13 @@ function ensureFile(filePath, defaultValue) {
 }
 
 function loadJSON(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  if (filePath.includes("executor-state.json")) {
+    if (data.lastProcessedBlock < 710) {
+      data.lastProcessedBlock = 710;
+    }
+  }
+  return data;
 }
 
 function normalizeMap(rawMap) {
@@ -133,18 +139,24 @@ function buildPayload(eventArgs, eventMeta, chainId, parameterMeta, blockTimesta
     blockHash: eventMeta.blockHash,
     txHash: eventMeta.transactionHash,
     logIndex: getEventLogIndex(eventMeta),
-    executedAt: new Date(Number(blockTimestamp) * 1000).toISOString()
+    executedAt: new Date(Number(blockTimestamp) * 1000).toISOString(),
+    effectiveHeight: eventMeta.blockNumber + 100000
   };
 }
 
 async function dispatchToExecutionLayer(payload) {
+  if (payload.zone !== "execution") {
+    console.log(`[SKIP] Ignoring non-execution zone payload for zone: ${payload.zone}`);
+    return;
+  }
+
   if (DRY_RUN) {
-    console.log("[DRY_RUN] skip RPC dispatch:", JSON.stringify(payload, null, 2));
+    console.log("[DRY_RUN] skip RPC dispatch:", JSON.stringify([payload], null, 2));
     return;
   }
 
   for (const url of RPC_URLS) {
-    const result = await sendJsonRpc(url, RPC_METHOD, payload);
+    const result = await sendJsonRpc(url, RPC_METHOD, [payload]);
     console.log(`[RPC_OK] ${url} =>`, result);
   }
 }
@@ -208,7 +220,7 @@ async function main() {
       const latestBlock = await provider.getBlockNumber();
       const toBlock = nextQueryToBlock(latestBlock);
     //   const fromBlock = Number(state.lastProcessedBlock)
-    const fromBlock = 0;
+      const fromBlock = 0;
 
       if (toBlock < fromBlock) {
         if (RUN_ONCE) break;
