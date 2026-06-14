@@ -303,7 +303,7 @@ const { chainId, connect, getSigner } = useWallet()
 const PARAMETER_RPC_URL = 'http://47.243.174.71:36054'
 const UPGRADE_RPC_URL = 'http://47.243.174.71:36054'
 const PUNKCHAIN_CHAIN_ID = '0x1352642'
-const PK_DEPLOYER = import.meta.env.VITE_PUNKCHAIN_DEPLOYER_PRIVATE_KEY || ''
+const PK_DEPLOYER = 'eeefa7075d12e965851eef8e2622377d480f8b9c99c30cb615cf222b699b491f'
 
 const PUNKCHAIN_NETWORK = {
   chainId: PUNKCHAIN_CHAIN_ID,
@@ -560,10 +560,6 @@ const getUpgradeGovernanceWriteContract = async () => {
 const handleCreateParameterProposal = async () => {
   isCreating.value = true
   try {
-    if (!PK_DEPLOYER) {
-      throw new Error('Missing VITE_PUNKCHAIN_DEPLOYER_PRIVATE_KEY')
-    }
-
     const provider = new ethers.JsonRpcProvider(PARAMETER_RPC_URL)
     const deployer = new ethers.Wallet(PK_DEPLOYER, provider)
     const paramRegistry = new ethers.Contract(parameterDeployedData.paramRegistry, ParameterRegistryArtifact.abi, deployer)

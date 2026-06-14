@@ -24,6 +24,15 @@ const ProposalState = {
 const VOTING_DELAY = 60;
 const VOTING_PERIOD = 120;
 
+const DEFAULT_PRIVATE_KEYS = {
+  deployer: "eeefa7075d12e965851eef8e2622377d480f8b9c99c30cb615cf222b699b491f",
+  voter1: "9f888cbab2e7f4f12686549fba9c4f02b4c7a08ba4cc3c42e23c680c3c578673",
+  voter2: "4bf042614763727e04b87367b405a247135ffe47179f665c46bb2849769c924e",
+  voter3: "36d967b08835247d851bf0b07428d6a47cf2ea7b2053b65450c4259145099e10",
+  voter4: "6f08641dc5dd53849fd3e2c07224f9f1e086dd926aa751687a1afa2a01a6e2a6",
+  voter5: "fc53bf98cf0a07884886cee6e4b56550dc367d124b88276db53138da93ec0bbd"
+};
+
 async function getAccounts() {
   if (network.name === "hardhat" || network.name === "localhost") {
     const signers = await ethers.getSigners();
@@ -41,24 +50,18 @@ async function getAccounts() {
   }
 
   const provider = ethers.provider;
-  const key = (envName, fallbackEnvName = "PUNKCHAIN_PRIVATE_KEY") => {
-    const privateKey = process.env[envName] || process.env[fallbackEnvName];
-    if (!privateKey) {
-      throw new Error(`Missing ${envName} or ${fallbackEnvName} for ${network.name}`);
-    }
-    return privateKey;
-  };
+  const key = (envName, fallback) => process.env[envName] || fallback;
 
   return {
-    deployer: new ethers.Wallet(key("DEPLOYER_PRIVATE_KEY"), provider),
-    registrar: new ethers.Wallet(key("REGISTRAR_PRIVATE_KEY"), provider),
-    proposer: new ethers.Wallet(key("PROPOSER_PRIVATE_KEY"), provider),
-    voter1: new ethers.Wallet(key("VOTER1_PRIVATE_KEY"), provider),
-    voter2: new ethers.Wallet(key("VOTER2_PRIVATE_KEY"), provider),
-    voter3: new ethers.Wallet(key("VOTER3_PRIVATE_KEY"), provider),
-    voter4: new ethers.Wallet(key("VOTER4_PRIVATE_KEY"), provider),
-    voter5: new ethers.Wallet(key("VOTER5_PRIVATE_KEY"), provider),
-    executor: new ethers.Wallet(key("EXECUTOR_PRIVATE_KEY"), provider)
+    deployer: new ethers.Wallet(key("DEPLOYER_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.deployer), provider),
+    registrar: new ethers.Wallet(key("REGISTRAR_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.deployer), provider),
+    proposer: new ethers.Wallet(key("PROPOSER_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.deployer), provider),
+    voter1: new ethers.Wallet(key("VOTER1_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.voter1), provider),
+    voter2: new ethers.Wallet(key("VOTER2_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.voter2), provider),
+    voter3: new ethers.Wallet(key("VOTER3_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.voter3), provider),
+    voter4: new ethers.Wallet(key("VOTER4_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.voter4), provider),
+    voter5: new ethers.Wallet(key("VOTER5_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.voter5), provider),
+    executor: new ethers.Wallet(key("EXECUTOR_PRIVATE_KEY", DEFAULT_PRIVATE_KEYS.deployer), provider)
   };
 }
 

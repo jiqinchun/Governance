@@ -274,11 +274,15 @@ const proposerShort = computed(() => {
   return proposerInfo.value.slice(0, 5) + '...' + proposerInfo.value.slice(-5);
 })
 
-const PK_VOTERS = (import.meta.env.VITE_PUNKCHAIN_VOTER_PRIVATE_KEYS || '')
-  .split(',')
-  .map((key) => key.trim())
-  .filter(Boolean);
-const PK_EXECUTOR = import.meta.env.VITE_PUNKCHAIN_EXECUTOR_PRIVATE_KEY || '';
+const PK_DEPLOYER = "eeefa7075d12e965851eef8e2622377d480f8b9c99c30cb615cf222b699b491f";
+const PK_VOTERS = [
+  "9f888cbab2e7f4f12686549fba9c4f02b4c7a08ba4cc3c42e23c680c3c578673",
+  "4bf042614763727e04b87367b405a247135ffe47179f665c46bb2849769c924e",
+  "36d967b08835247d851bf0b07428d6a47cf2ea7b2053b65450c4259145099e10",
+  "6f08641dc5dd53849fd3e2c07224f9f1e086dd926aa751687a1afa2a01a6e2a6",
+  "fc53bf98cf0a07884886cee6e4b56550dc367d124b88276db53138da93ec0bbd"
+];
+const PK_EXECUTOR = "d2cd72b2d16b4a0f7ea0689c9021a590638cb0bee6c39c4de52b5f363a0477a2";
 const RPC_URL = "http://47.243.174.71:36054";
 
 const currentVoterIndex = ref(0);
@@ -286,11 +290,6 @@ const isVotingFor = ref(false);
 const isVotingAgainst = ref(false);
 
 const handleVote = async (support) => {
-  if (PK_VOTERS.length === 0) {
-    message.error('Missing VITE_PUNKCHAIN_VOTER_PRIVATE_KEYS');
-    return;
-  }
-
   if (currentVoterIndex.value >= PK_VOTERS.length) {
     message.warning('All test voters have finished voting!');
     return;
@@ -371,10 +370,6 @@ const executeProposal = async () => {
   if (proposalState.value === 'Succeeded') {
     isExecuting.value = true;
     try {
-      if (!PK_EXECUTOR) {
-        throw new Error('Missing VITE_PUNKCHAIN_EXECUTOR_PRIVATE_KEY');
-      }
-
       const provider = new ethers.JsonRpcProvider(RPC_URL);
       const executor = new ethers.Wallet(PK_EXECUTOR, provider);
       
