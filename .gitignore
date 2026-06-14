@@ -26,3 +26,4 @@ Thumbs.db
 # Local runtime/test outputs
 scripts/mock-rpc-*.json
 scripts/offchain-executor-state.localtest.json
+scripts/contract_upgrade_process/*.localhost.*.json

@@ -1,9 +1,8 @@
 <template>
   <div class="proposals-container">
-    <!-- Top Stats Section -->
-    <div class="stats-header">
+    <div class="stats-header governance-summary">
       <div class="go-back-section">
-        <a-button class="go-back-btn">
+        <a-button class="go-back-btn" @click="router.push('/')">
           <template #icon><ArrowLeftOutlined style="font-size: 14px;" /></template>
           Go Back
         </a-button>
@@ -11,36 +10,35 @@
 
       <div class="stat-items">
         <div class="stat-box">
-          <div class="stat-label">My Voting Power</div>
-          <div class="stat-value voting-power">
-            <svg class="a-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="14" cy="14" r="14" fill="#92A3FE"/>
-              <path d="M14.0003 7L21.0003 19.5H7.00033L14.0003 7Z" fill="white"/>
-            </svg>
-            1150
-          </div>
+          <div class="stat-label">Governance Type</div>
+          <div class="stat-value compact">{{ activeGovernanceLabel }}</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">My Votes</div>
-          <div class="stat-value">15</div>
+          <div class="stat-label">Parameter Proposals</div>
+          <div class="stat-value">{{ parameterTotal }}</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">My Proposition Power</div>
-          <div class="stat-value">120</div>
+          <div class="stat-label">Upgrade Proposals</div>
+          <div class="stat-value">{{ upgradeTotal }}</div>
         </div>
         <div class="stat-box last-stat">
-          <div class="stat-label">My Proposals</div>
-          <div class="stat-value proposals-view">
-            15 <a-button size="small" class="view-btn">View</a-button>
-          </div>
+          <div class="stat-label">Network</div>
+          <div class="stat-value compact">{{ activeNetworkLabel }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Filter Bar -->
+    <div class="governance-switch">
+      <a-segmented
+        v-model:value="activeGovernance"
+        :options="governanceOptions"
+        size="large"
+      />
+    </div>
+
     <div class="filter-bar">
       <div class="search-wrap">
-        <a-input placeholder="Search for proposals by their name" class="search-input">
+        <a-input v-model:value="searchText" :placeholder="searchPlaceholder" class="search-input">
           <template #prefix>
             <SearchOutlined style="color: rgba(0,0,0,.25)" />
           </template>
@@ -53,6 +51,8 @@
           <a-select v-model:value="filterValue" class="custom-select" :bordered="false">
             <a-select-option value="all">All Proposals</a-select-option>
             <a-select-option value="active">Active</a-select-option>
+            <a-select-option value="succeeded">Succeeded</a-select-option>
+            <a-select-option value="executed">Executed</a-select-option>
           </a-select>
         </div>
 
@@ -61,43 +61,42 @@
         <div class="select-group">
           <span class="select-label">Sort By</span>
           <a-select v-model:value="sortValue" class="custom-select" :bordered="false">
-            <a-select-option value="asc">Ascending</a-select-option>
-            <a-select-option value="desc">Descending</a-select-option>
+            <a-select-option value="desc">Newest</a-select-option>
+            <a-select-option value="asc">Oldest</a-select-option>
           </a-select>
         </div>
 
         <a-button type="primary" class="new-proposal-btn" @click="showCreateModal">
-          New Proposal <PlusOutlined />
+          {{ createButtonLabel }} <PlusOutlined />
         </a-button>
       </div>
     </div>
 
-    <!-- Create Proposal Modal -->
     <a-modal
-      v-model:open="isModalVisible"
-      title="Create Proposal"
+      v-model:open="isParameterModalVisible"
+      title="Create Parameter Upgrade Proposal"
       :footer="null"
       width="600px"
       :class="'custom-create-modal'"
-      :afterClose="resetForm"
+      :afterClose="resetParameterForm"
     >
-      <a-form layout="vertical" :model="proposalForm" @finish="handleCreateProposal">
-        <div style="display: flex; gap: 16px;">
-          <a-form-item label="Parameter Name" name="name" :rules="[{ required: true, message: 'Please provide parameter name' }]" style="flex: 1;">
-            <a-input v-model:value="proposalForm.name" placeholder="e.g. minPowGas" size="large" />
+      <a-form layout="vertical" :model="parameterForm" @finish="handleCreateParameterProposal">
+        <div class="form-grid">
+          <a-form-item label="Parameter Name" name="name" :rules="[{ required: true, message: 'Please provide parameter name' }]">
+            <a-input v-model:value="parameterForm.name" placeholder="e.g. minPowGas" size="large" />
           </a-form-item>
 
-          <a-form-item label="Category" name="category" :rules="[{ required: true, message: 'Please provide category' }]" style="flex: 1;">
-            <a-input v-model:value="proposalForm.category" placeholder="e.g. execution" size="large" />
+          <a-form-item label="Category" name="category" :rules="[{ required: true, message: 'Please provide category' }]">
+            <a-input v-model:value="parameterForm.category" placeholder="e.g. execution" size="large" />
           </a-form-item>
         </div>
 
         <a-form-item label="New Value" name="newValue" :rules="[{ required: true, message: 'Please provide new value' }]">
-          <a-input v-model:value="proposalForm.newValue" placeholder="provide new value (e.g. 2000000)" size="large" />
+          <a-input v-model:value="parameterForm.newValue" placeholder="provide new value (e.g. 2000000)" size="large" />
         </a-form-item>
 
         <a-form-item label="Description" name="description" :rules="[{ required: true, message: 'Please provide description' }]">
-          <a-textarea v-model:value="proposalForm.description" placeholder="e.g. It is proposed that the minPowGas value for the execution zone be changed from 1,000,000 to 2,000,000, for the following reasons:" :rows="6" size="large" />
+          <a-textarea v-model:value="parameterForm.description" placeholder="Describe why this parameter should change." :rows="6" size="large" />
         </a-form-item>
 
         <a-form-item style="margin-bottom: 0;">
@@ -108,10 +107,148 @@
       </a-form>
     </a-modal>
 
-    <!-- Data Table -->
+    <a-modal
+      v-model:open="isUpgradeModalVisible"
+      title="Create Contract Upgrade Proposal"
+      :footer="null"
+      width="720px"
+      :class="'custom-create-modal'"
+      :afterClose="resetUpgradeForm"
+    >
+      <a-form layout="vertical" :model="upgradeForm" @finish="handleCreateUpgradeProposal">
+        <a-alert
+          class="upgrade-alert"
+          type="info"
+          show-icon
+          message="Use a wallet with governance tokens on PunkChain."
+        />
+
+        <div class="network-flow">
+          <div class="network-flow__header">
+            <div>
+              <div class="network-flow__title">PunkChain deployment flow</div>
+              <div class="network-flow__desc">
+                MetaMask can switch to PunkChain after the network is added. Add it manually if your wallet has not stored it yet.
+              </div>
+            </div>
+            <a-tag :color="localNetworkReady ? 'green' : 'orange'" class="network-flow__tag">
+              {{ walletNetworkLabel }}
+            </a-tag>
+          </div>
+
+          <div class="network-flow__steps">
+            <div :class="['network-flow__step', { 'is-ready': localNetworkReady }]">
+              <span class="network-flow__index">1</span>
+              <div>
+                <div class="network-flow__step-title">Switch to PunkChain</div>
+                <div class="network-flow__step-desc">If MetaMask has not added PunkChain, use the manual settings below.</div>
+              </div>
+            </div>
+            <div class="network-flow__step">
+              <span class="network-flow__index">2</span>
+              <div>
+                <div class="network-flow__step-title">Deploy implementation</div>
+                <div class="network-flow__step-desc">MetaMask opens a deployment transaction on PunkChain.</div>
+              </div>
+            </div>
+            <div class="network-flow__step">
+              <span class="network-flow__index">3</span>
+              <div>
+                <div class="network-flow__step-title">Create proposal</div>
+                <div class="network-flow__step-desc">Submit the upgrade proposal to PunkChain UpgradeGovernance.</div>
+              </div>
+            </div>
+          </div>
+
+          <a-button
+            class="prepare-network-btn"
+            :loading="isPreparingLocalNetwork"
+            @click="prepareLocalNetwork"
+          >
+            {{ localNetworkReady ? 'PunkChain Ready' : 'Switch to PunkChain' }}
+          </a-button>
+
+          <div v-if="!localNetworkReady" class="manual-network">
+            <div class="manual-network__title">Manual network settings</div>
+            <div class="manual-network__grid">
+              <span>Network Name</span><strong>PunkChain</strong>
+              <span>RPC URL</span><strong>http://47.243.174.71:36054</strong>
+              <span>Chain ID</span><strong>20260418</strong>
+              <span>Currency Symbol</span><strong>PUNK</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <a-form-item label="Proxy" name="proxy" :rules="[{ required: true, message: 'Please select or enter proxy address' }]">
+            <a-select
+              v-model:value="upgradeForm.proxy"
+              size="large"
+              show-search
+              :options="registeredProxyOptions"
+              placeholder="Registered proxy address"
+            />
+          </a-form-item>
+
+          <a-form-item label="New Implementation" name="newImplementation" :rules="[{ required: true, message: 'Please provide new implementation address' }]">
+            <a-input v-model:value="upgradeForm.newImplementation" placeholder="0x..." size="large" />
+          </a-form-item>
+        </div>
+
+        <div class="implementation-tools">
+          <a-button class="tool-btn" :loading="isDeployingImplementation" @click="deployV2Implementation">
+            Deploy New V2 Implementation
+          </a-button>
+          <a-button class="tool-btn" @click="fillDeployedImplementation">
+            Use deployed.json Implementation
+          </a-button>
+        </div>
+
+        <div class="form-grid">
+          <a-form-item label="Call Data Mode">
+            <a-select v-model:value="upgradeForm.callDataMode" size="large" @change="syncUpgradeCallData">
+              <a-select-option value="none">No migration call</a-select-option>
+              <a-select-option value="initializeV2">initializeV2(uint256)</a-select-option>
+              <a-select-option value="custom">Custom calldata</a-select-option>
+            </a-select>
+          </a-form-item>
+
+          <a-form-item v-if="upgradeForm.callDataMode === 'initializeV2'" label="Initial Multiplier">
+            <a-input-number
+              v-model:value="upgradeForm.multiplier"
+              size="large"
+              :min="0"
+              style="width: 100%;"
+              @change="syncUpgradeCallData"
+            />
+          </a-form-item>
+        </div>
+
+        <a-form-item label="Call Data">
+          <a-textarea
+            v-model:value="upgradeForm.callData"
+            :disabled="upgradeForm.callDataMode !== 'custom'"
+            placeholder="0x"
+            :rows="3"
+            size="large"
+          />
+        </a-form-item>
+
+        <a-form-item label="Description" name="description" :rules="[{ required: true, message: 'Please provide description' }]">
+          <a-textarea v-model:value="upgradeForm.description" placeholder="Describe the implementation change and migration intent." :rows="5" size="large" />
+        </a-form-item>
+
+        <a-form-item style="margin-bottom: 0;">
+          <a-button type="primary" html-type="submit" block size="large" class="submit-btn" :loading="isCreating">
+            Create Proposal
+          </a-button>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <a-table
-      :columns="columns"
-      :data-source="data"
+      :columns="activeColumns"
+      :data-source="filteredData"
       :loading="isLoadingTable"
       :pagination="paginationConfig"
       class="custom-table"
@@ -123,15 +260,19 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'proposal'">
           <div class="proposal-title" @click.stop="goToDetail(record.key)">
-            {{ record.proposal }}
+            <span>{{ record.proposal }}</span>
             <ArrowRightOutlined class="link-icon" />
           </div>
         </template>
-        
+
         <template v-else-if="column.key === 'state'">
           <div :class="['state-tag', record.state.toLowerCase()]">
             <span class="dot"></span> {{ record.state }}
           </div>
+        </template>
+
+        <template v-else-if="column.key === 'proxy' || column.key === 'implementation'">
+          <span class="mono-address">{{ record[column.key] }}</span>
         </template>
       </template>
     </a-table>
@@ -139,12 +280,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { ethers } from 'ethers'
 import ParameterRegistryArtifact from '../../../artifacts/contracts/ParameterRegistry.sol/ParameterRegistry.json'
-import deployedData from '../../../scripts/upgrade_process/deployed.json'
+import UpgradeGovernanceArtifact from '../../../artifacts/contracts/UpgradeGovernance.sol/UpgradeGovernance.json'
+import UpgradeableCounterV2Artifact from '../../../artifacts/contracts/mocks/UpgradeableCounterV2.sol/UpgradeableCounterV2.json'
+import parameterDeployedData from '../../../scripts/upgrade_process/deployed.json'
+import upgradeDeployedData from '../../../scripts/contract_upgrade_process/deployed.json'
+import { useWallet } from '../composables/useWallet'
 import {
   ArrowLeftOutlined,
   SearchOutlined,
@@ -153,186 +298,535 @@ import {
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
+const { chainId, connect, getSigner } = useWallet()
+
+const PARAMETER_RPC_URL = 'http://47.243.174.71:36054'
+const UPGRADE_RPC_URL = 'http://47.243.174.71:36054'
+const PUNKCHAIN_CHAIN_ID = '0x1352642'
+const PK_DEPLOYER = import.meta.env.VITE_PUNKCHAIN_DEPLOYER_PRIVATE_KEY || ''
+
+const PUNKCHAIN_NETWORK = {
+  chainId: PUNKCHAIN_CHAIN_ID,
+  chainName: 'PunkChain',
+  nativeCurrency: {
+    name: 'Punk',
+    symbol: 'PUNK',
+    decimals: 18
+  },
+  rpcUrls: [UPGRADE_RPC_URL],
+  blockExplorerUrls: []
+}
+
+const STATE_MAPPING = ['Pending', 'Active', 'Succeeded', 'Defeated', 'Executed', 'Canceled']
+const LEVEL_MAPPING = ['Application', 'System', 'Infrastructure']
+
+const governanceOptions = [
+  { label: 'Parameter Upgrade', value: 'parameter' },
+  { label: 'Contract Upgrade', value: 'upgrade' }
+]
+
+const activeGovernance = ref('parameter')
 const filterValue = ref('all')
-const sortValue = ref('asc')
+const sortValue = ref('desc')
+const searchText = ref('')
 
-const isModalVisible = ref(false)
+const isParameterModalVisible = ref(false)
+const isUpgradeModalVisible = ref(false)
 const isCreating = ref(false)
+const isDeployingImplementation = ref(false)
+const isPreparingLocalNetwork = ref(false)
+const isLoadingTable = ref(false)
 
-const proposalForm = reactive({
+const parameterData = ref([])
+const upgradeData = ref([])
+const registeredProxyOptions = ref([])
+const parameterTotal = ref(0)
+const upgradeTotal = ref(0)
+
+const parameterForm = reactive({
   name: '',
   category: '',
   newValue: '',
   description: ''
 })
 
+const upgradeForm = reactive({
+  proxy: upgradeDeployedData.proxy || '',
+  newImplementation: upgradeDeployedData.newImplementation || '',
+  callDataMode: 'none',
+  multiplier: 3,
+  callData: '0x',
+  description: 'Upgrade the registered UUPS proxy to a new implementation.'
+})
+
+const activeGovernanceLabel = computed(() => (
+  activeGovernance.value === 'parameter' ? 'Parameters' : 'Upgrades'
+))
+
+const activeNetworkLabel = computed(() => (
+  'PunkChain'
+))
+
+const createButtonLabel = computed(() => (
+  activeGovernance.value === 'parameter' ? 'New Proposal' : 'New Proposal'
+))
+
+const localNetworkReady = computed(() => chainId.value?.toLowerCase() === PUNKCHAIN_CHAIN_ID)
+
+const walletNetworkLabel = computed(() => (
+  localNetworkReady.value ? 'PunkChain' : 'PunkChain required'
+))
+
+const searchPlaceholder = computed(() => (
+  activeGovernance.value === 'parameter'
+    ? 'Search parameter proposals'
+    : 'Search proxy, implementation, or description'
+))
+
+const parameterColumns = [
+  { title: 'PROPOSAL', dataIndex: 'proposal', key: 'proposal', width: '28%' },
+  { title: 'STATE', dataIndex: 'state', key: 'state', width: '13%' },
+  { title: 'DUE DATE', dataIndex: 'dueDate', key: 'dueDate', width: '19%' },
+  { title: 'VOTES FOR', dataIndex: 'votesFor', key: 'votesFor', width: '14%' },
+  { title: 'VOTES AGAINST', dataIndex: 'votesAgainst', key: 'votesAgainst', width: '14%' },
+  { title: 'TOTAL VOTES', dataIndex: 'totalVotes', key: 'totalVotes', width: '12%' }
+]
+
+const upgradeColumns = [
+  { title: 'PROPOSAL', dataIndex: 'proposal', key: 'proposal', width: '28%' },
+  { title: 'STATE', dataIndex: 'state', key: 'state', width: '12%' },
+  { title: 'PROXY', dataIndex: 'proxy', key: 'proxy', width: '16%' },
+  { title: 'NEW IMPLEMENTATION', dataIndex: 'implementation', key: 'implementation', width: '18%' },
+  { title: 'VOTES FOR', dataIndex: 'votesFor', key: 'votesFor', width: '13%' },
+  { title: 'VOTES AGAINST', dataIndex: 'votesAgainst', key: 'votesAgainst', width: '13%' }
+]
+
+const activeColumns = computed(() => (
+  activeGovernance.value === 'parameter' ? parameterColumns : upgradeColumns
+))
+
+const activeData = computed(() => (
+  activeGovernance.value === 'parameter' ? parameterData.value : upgradeData.value
+))
+
+const filteredData = computed(() => {
+  const normalizedSearch = searchText.value.trim().toLowerCase()
+  const filtered = activeData.value.filter((item) => {
+    const stateMatches = filterValue.value === 'all' || item.state.toLowerCase() === filterValue.value
+    const textMatches = !normalizedSearch || [
+      item.proposal,
+      item.state,
+      item.proxy,
+      item.implementation,
+      item.description
+    ].filter(Boolean).some((value) => String(value).toLowerCase().includes(normalizedSearch))
+
+    return stateMatches && textMatches
+  })
+
+  return [...filtered].sort((a, b) => (
+    sortValue.value === 'asc' ? Number(a.key) - Number(b.key) : Number(b.key) - Number(a.key)
+  ))
+})
+
+const paginationConfig = ref({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['5', '10', '20', '50'],
+  showTotal: (total) => `Total ${total} items`,
+  onChange: (page, pageSize) => {
+    paginationConfig.value.current = page
+    paginationConfig.value.pageSize = pageSize
+  }
+})
+
+watch(filteredData, (rows) => {
+  paginationConfig.value.total = rows.length
+}, { immediate: true })
+
+watch(activeGovernance, async () => {
+  paginationConfig.value.current = 1
+  searchText.value = ''
+  filterValue.value = 'all'
+  await fetchActiveProposals()
+})
+
 const showCreateModal = () => {
-  isModalVisible.value = true
+  if (activeGovernance.value === 'parameter') {
+    isParameterModalVisible.value = true
+  } else {
+    isUpgradeModalVisible.value = true
+  }
 }
 
-const resetForm = () => {
-  proposalForm.name = ''
-  proposalForm.category = ''
-  proposalForm.newValue = ''
-  proposalForm.description = ''
+const resetParameterForm = () => {
+  parameterForm.name = ''
+  parameterForm.category = ''
+  parameterForm.newValue = ''
+  parameterForm.description = ''
 }
 
-const PK_DEPLOYER = "eeefa7075d12e965851eef8e2622377d480f8b9c99c30cb615cf222b699b491f"
-const RPC_URL = "http://47.243.174.71:36054"
+const resetUpgradeForm = () => {
+  upgradeForm.proxy = upgradeDeployedData.proxy || ''
+  upgradeForm.newImplementation = upgradeDeployedData.newImplementation || ''
+  upgradeForm.callDataMode = 'none'
+  upgradeForm.multiplier = 3
+  upgradeForm.callData = '0x'
+  upgradeForm.description = 'Upgrade the registered UUPS proxy to a new implementation.'
+}
 
-const handleCreateProposal = async () => {
-  isCreating.value = true
+const shortAddress = (address) => {
+  if (!address || address === ethers.ZeroAddress) return '0x0000...0000'
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+const formatVotes = (votesAmount) => {
+  const etherVal = Number(ethers.formatEther(votesAmount))
+  if (etherVal >= 1000) return `${(etherVal / 1000).toFixed(1)}K`
+  return etherVal.toString()
+}
+
+const formatDate = (timestamp) => {
+  if (Number(timestamp) === 0) return 'TBD'
+  const date = new Date(Number(timestamp) * 1000)
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+const formatBps = (value) => `${(Number(value) / 100).toFixed(2)}%`
+
+const getUpgradeGovernanceReadContract = () => {
+  const provider = new ethers.JsonRpcProvider(UPGRADE_RPC_URL)
+  return new ethers.Contract(upgradeDeployedData.upgradeGovernance, UpgradeGovernanceArtifact.abi, provider)
+}
+
+const ensurePunkChainNetwork = async () => {
+  if (typeof window === 'undefined' || !window.ethereum) {
+    message.error('MetaMask not detected. Please open this page in a browser with MetaMask enabled.')
+    return false
+  }
+
+  const currentChainId = await window.ethereum.request({ method: 'eth_chainId' })
+  if (currentChainId?.toLowerCase() === PUNKCHAIN_CHAIN_ID) return true
+
   try {
-    const provider = new ethers.JsonRpcProvider(RPC_URL)
-    const deployer = new ethers.Wallet(PK_DEPLOYER, provider)
-    const paramRegistry = new ethers.Contract(deployedData.paramRegistry, ParameterRegistryArtifact.abi, deployer)
-
-    // Generate Parameter ID from name and category
-    const categoryBytes32 = ethers.encodeBytes32String(proposalForm.category)
-    const parameterId = ethers.keccak256(
-      ethers.solidityPacked(["string", "bytes32"], [proposalForm.name, categoryBytes32])
-    )
-
-    // Ensure newValue is a number
-    const newValueInt = parseInt(proposalForm.newValue, 10)
-    if (isNaN(newValueInt)) {
-      throw new Error("New Value must be a number")
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: PUNKCHAIN_CHAIN_ID }]
+    })
+    chainId.value = PUNKCHAIN_CHAIN_ID
+    message.success('Switched to PunkChain')
+    return true
+  } catch (err) {
+    if (err?.code === 4902) {
+      message.warning('Please add PunkChain manually in MetaMask. Remote HTTP RPC URLs cannot be added automatically by MetaMask.')
+      return false
     }
 
-    const encodedNewValue = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [newValueInt])
+    if (err?.code !== 4001) {
+      message.error(err?.shortMessage || err?.message || 'Failed to switch to PunkChain')
+    }
+    return false
+  }
+}
 
-    const tx = await paramRegistry.proposeParameterChange(
-      parameterId,
-      encodedNewValue,
-      proposalForm.description
+const prepareLocalNetwork = async () => {
+  isPreparingLocalNetwork.value = true
+  try {
+    await ensurePunkChainNetwork()
+  } finally {
+    isPreparingLocalNetwork.value = false
+  }
+}
+
+const getUpgradeGovernanceWriteContract = async () => {
+  const onLocalNetwork = await ensurePunkChainNetwork()
+  if (!onLocalNetwork) return null
+
+  let signer = await getSigner()
+  if (!signer) {
+    const connected = await connect()
+    if (!connected) return null
+    signer = await getSigner()
+  }
+  return new ethers.Contract(upgradeDeployedData.upgradeGovernance, UpgradeGovernanceArtifact.abi, signer)
+}
+
+const handleCreateParameterProposal = async () => {
+  isCreating.value = true
+  try {
+    if (!PK_DEPLOYER) {
+      throw new Error('Missing VITE_PUNKCHAIN_DEPLOYER_PRIVATE_KEY')
+    }
+
+    const provider = new ethers.JsonRpcProvider(PARAMETER_RPC_URL)
+    const deployer = new ethers.Wallet(PK_DEPLOYER, provider)
+    const paramRegistry = new ethers.Contract(parameterDeployedData.paramRegistry, ParameterRegistryArtifact.abi, deployer)
+
+    const categoryBytes32 = ethers.encodeBytes32String(parameterForm.category)
+    const parameterId = ethers.keccak256(
+      ethers.solidityPacked(['string', 'bytes32'], [parameterForm.name, categoryBytes32])
     )
-    await tx.wait()
-    
-    // Refresh table immediately after creation globally updates
-    await fetchProposals();
 
-    message.success('Proposal Created Successfully!')
-    isModalVisible.value = false
-    // resetForm will automatically be triggered by afterClose
+    const newValueInt = parseInt(parameterForm.newValue, 10)
+    if (Number.isNaN(newValueInt)) throw new Error('New Value must be a number')
+
+    const encodedNewValue = ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [newValueInt])
+    const tx = await paramRegistry.proposeParameterChange(parameterId, encodedNewValue, parameterForm.description)
+    await tx.wait()
+
+    await fetchParameterProposals()
+    message.success('Proposal created successfully')
+    isParameterModalVisible.value = false
   } catch (err) {
     console.error(err)
-    message.error('Failed to create proposal: ' + err.message)
+    message.error(`Failed to create proposal: ${err.shortMessage || err.reason || err.message}`)
   } finally {
     isCreating.value = false
   }
 }
 
-const goToDetail = (id) => {
-  router.push(`/proposal/${id}`)
+const syncUpgradeCallData = () => {
+  if (upgradeForm.callDataMode === 'none') {
+    upgradeForm.callData = '0x'
+    return
+  }
+
+  if (upgradeForm.callDataMode === 'initializeV2') {
+    const iface = new ethers.Interface(UpgradeableCounterV2Artifact.abi)
+    upgradeForm.callData = iface.encodeFunctionData('initializeV2', [upgradeForm.multiplier || 0])
+  }
 }
 
-const columns = [
-  { title: 'PROPOSAL', dataIndex: 'proposal', key: 'proposal', width: '25%' },
-  { title: 'STATE', dataIndex: 'state', key: 'state', width: '15%' },
-  { title: 'DUE DATE', dataIndex: 'dueDate', key: 'dueDate', width: '20%' },
-  { title: 'VOTES FOR', dataIndex: 'votesFor', key: 'votesFor', width: '15%' },
-  { title: 'VOTES AGAINST', dataIndex: 'votesAgainst', key: 'votesAgainst', width: '15%' },
-  { title: 'TOTAL VOTES', dataIndex: 'totalVotes', key: 'totalVotes', width: '10%' }
-];
+const fillDeployedImplementation = () => {
+  upgradeForm.newImplementation = upgradeDeployedData.newImplementation || ''
+  message.success('Implementation filled from deployed.json')
+}
 
-const data = ref([]);
-const isLoadingTable = ref(false);
-
-const STATE_MAPPING = [
-  'Pending',
-  'Active',
-  'Succeeded',
-  'Defeated',
-  'Executed',
-  'Cancelled'
-];
-
-const formatVotes = (votesAmount) => {
-  const etherVal = Number(ethers.formatEther(votesAmount));
-  if (etherVal >= 1000) {
-    return (etherVal / 1000).toFixed(1) + 'K';
-  }
-  return etherVal.toString();
-};
-
-const formatDate = (timestamp) => {
-  if (Number(timestamp) === 0) return 'TBD';
-  const date = new Date(Number(timestamp) * 1000);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-};
-
-const fetchProposals = async () => {
-  isLoadingTable.value = true;
+const deployV2Implementation = async () => {
+  isDeployingImplementation.value = true
   try {
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const paramRegistry = new ethers.Contract(deployedData.paramRegistry, ParameterRegistryArtifact.abi, provider);
-    
-    let count = await paramRegistry.proposalCount();
-    const totalProposals = Number(count);
-    
-    // Create an array of IDs from totalProposals down to 1
-    const proposalIds = Array.from({ length: totalProposals }, (_, i) => totalProposals - i);
+    const onLocalNetwork = await ensurePunkChainNetwork()
+    if (!onLocalNetwork) return
 
-    // Fetch all proposals in parallel instead of sequentially
-    const fetchPromises = proposalIds.map(async (id) => {
+    let signer = await getSigner()
+    if (!signer) {
+      const connected = await connect()
+      if (!connected) return
+      signer = await getSigner()
+    }
+
+    const signerAddress = await signer.getAddress()
+    const signerProvider = signer.provider
+    const balance = await signerProvider.getBalance(signerAddress)
+    const gasEstimate = await signerProvider.estimateGas({
+      from: signerAddress,
+      data: UpgradeableCounterV2Artifact.bytecode
+    })
+    const feeData = await signerProvider.getFeeData()
+    const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n
+    if (gasPrice > 0n) {
+      const estimatedCost = gasEstimate * gasPrice
+      if (balance < estimatedCost) {
+        throw new Error(`Insufficient PUNK for deployment gas. Need about ${ethers.formatEther(estimatedCost)} PUNK, current balance ${ethers.formatEther(balance)} PUNK.`)
+      }
+    }
+
+    const factory = new ethers.ContractFactory(
+      UpgradeableCounterV2Artifact.abi,
+      UpgradeableCounterV2Artifact.bytecode,
+      signer
+    )
+    const implementation = await factory.deploy({
+      gasLimit: (gasEstimate * 120n) / 100n,
+      ...(gasPrice > 0n ? { gasPrice } : {})
+    })
+    await implementation.waitForDeployment()
+
+    upgradeForm.newImplementation = await implementation.getAddress()
+    message.success(`New V2 implementation deployed: ${shortAddress(upgradeForm.newImplementation)}`)
+  } catch (err) {
+    console.error(err)
+    message.error(`Deploy failed: ${err.shortMessage || err.reason || err.message}`)
+  } finally {
+    isDeployingImplementation.value = false
+  }
+}
+
+const handleCreateUpgradeProposal = async () => {
+  isCreating.value = true
+  try {
+    syncUpgradeCallData()
+    if (!ethers.isAddress(upgradeForm.proxy)) throw new Error('Invalid proxy address')
+    if (!ethers.isAddress(upgradeForm.newImplementation)) throw new Error('Invalid implementation address')
+    if (!upgradeForm.callData || !upgradeForm.callData.startsWith('0x')) throw new Error('Call data must be hex')
+
+    const upgradeGovernance = await getUpgradeGovernanceWriteContract()
+    if (!upgradeGovernance) return
+
+    const tx = await upgradeGovernance.proposeUpgrade(
+      upgradeForm.proxy,
+      upgradeForm.newImplementation,
+      upgradeForm.callData,
+      upgradeForm.description
+    )
+    await tx.wait()
+
+    await fetchUpgradeProposals()
+    message.success('Upgrade proposal created successfully')
+    isUpgradeModalVisible.value = false
+  } catch (err) {
+    console.error(err)
+    message.error(`Failed to create upgrade proposal: ${err.shortMessage || err.reason || err.message}`)
+  } finally {
+    isCreating.value = false
+  }
+}
+
+const fetchParameterProposals = async () => {
+  isLoadingTable.value = true
+  try {
+    const provider = new ethers.JsonRpcProvider(PARAMETER_RPC_URL)
+    const paramRegistry = new ethers.Contract(parameterDeployedData.paramRegistry, ParameterRegistryArtifact.abi, provider)
+
+    const count = await paramRegistry.proposalCount()
+    const totalProposals = Number(count)
+    const proposalIds = Array.from({ length: totalProposals }, (_, i) => totalProposals - i)
+
+    const rows = await Promise.all(proposalIds.map(async (id) => {
       const [p, details] = await Promise.all([
         paramRegistry.getProposalBasic(id),
         paramRegistry.getProposalDetails(id)
-      ]);
+      ])
 
-      const paramInfo = await paramRegistry.getParameter(p.parameterId);
-      const categoryString = ethers.decodeBytes32String(paramInfo.category);
-      
-      let decodedValue = "Unknown";
+      const paramInfo = await paramRegistry.getParameter(p.parameterId)
+      const categoryString = ethers.decodeBytes32String(paramInfo.category)
+
+      let decodedValue = 'Unknown'
       try {
-        decodedValue = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], details.newValue)[0].toString();
+        decodedValue = ethers.AbiCoder.defaultAbiCoder().decode(['uint256'], details.newValue)[0].toString()
       } catch (e) {
-        console.error("Failed to decode newValue", e);
+        console.error('Failed to decode newValue', e)
       }
-        
-      const formattedProposal = `Upgrade ${paramInfo.name} to ${decodedValue} for ${categoryString} zone`;
-      
-      const total = details.forVotes + details.againstVotes;
-      
+
+      const total = details.forVotes + details.againstVotes
+
       return {
         key: p.id.toString(),
-        proposal: formattedProposal,
+        proposal: `Upgrade ${paramInfo.name} to ${decodedValue} for ${categoryString} zone`,
         state: STATE_MAPPING[Number(p.state)],
         dueDate: formatDate(details.endTime),
         votesFor: formatVotes(details.forVotes),
         votesAgainst: formatVotes(details.againstVotes),
         totalVotes: formatVotes(total),
-      };
-    });
+        description: p.description
+      }
+    }))
 
-    const loadedData = await Promise.all(fetchPromises);
-    
-    data.value = loadedData;
-    paginationConfig.value.total = totalProposals;
+    parameterData.value = rows
+    parameterTotal.value = totalProposals
   } catch (error) {
-    console.error("Failed to load proposals:", error);
-    message.error("Failed to load chain data");
+    console.error('Failed to load parameter proposals:', error)
+    message.error('Failed to load parameter governance data')
   } finally {
-    isLoadingTable.value = false;
+    isLoadingTable.value = false
   }
-};
+}
 
-onMounted(() => {
-  fetchProposals();
-});
+const fetchRegisteredProxies = async () => {
+  const upgradeGovernance = getUpgradeGovernanceReadContract()
+  const proxies = await upgradeGovernance.getAllRegisteredProxies()
 
-const paginationConfig = ref({
-  current: 1,
-  pageSize: 10,
-  total: 15, // Will dynamically update when wired with real data
-  showSizeChanger: true,
-  pageSizeOptions: ['5', '10', '20', '50'],
-  showTotal: (total) => `Total ${total} items`,
-  onChange: (page, pageSize) => {
-    paginationConfig.value.current = page;
-    paginationConfig.value.pageSize = pageSize;
-  },
-});
+  registeredProxyOptions.value = await Promise.all(proxies.map(async (proxy) => {
+    const info = await upgradeGovernance.getUpgradeableContract(proxy)
+    const name = info.name || info[1]
+    const level = Number(info.level ?? info[2])
+    return {
+      value: proxy,
+      label: `${name} - ${LEVEL_MAPPING[level]} - ${shortAddress(proxy)}`
+    }
+  }))
+}
+
+const fetchUpgradeProposals = async () => {
+  isLoadingTable.value = true
+  try {
+    const upgradeGovernance = getUpgradeGovernanceReadContract()
+    await fetchRegisteredProxies()
+
+    const count = await upgradeGovernance.proposalCount()
+    const totalProposals = Number(count)
+    const proposalIds = Array.from({ length: totalProposals }, (_, i) => totalProposals - i)
+
+    const rows = await Promise.all(proposalIds.map(async (id) => {
+      const [basic, details, upgrade] = await Promise.all([
+        upgradeGovernance.getProposalBasic(id),
+        upgradeGovernance.getProposalDetails(id),
+        upgradeGovernance.getProposalUpgrade(id)
+      ])
+
+      let proxyName = 'Registered Proxy'
+      let level = 0
+      let category = 'unknown'
+      try {
+        const info = await upgradeGovernance.getUpgradeableContract(basic.proxy)
+        proxyName = info.name || info[1]
+        level = Number(info.level ?? info[2])
+        category = ethers.decodeBytes32String(info.category ?? info[3])
+      } catch (e) {
+        console.warn('Failed to load proxy metadata', e)
+      }
+
+      return {
+        key: basic.id.toString(),
+        proposal: `${proxyName} upgrade to ${shortAddress(upgrade.newImplementation)}`,
+        state: STATE_MAPPING[Number(basic.state)],
+        proxy: shortAddress(basic.proxy),
+        proxyAddress: basic.proxy,
+        implementation: shortAddress(upgrade.newImplementation),
+        implementationAddress: upgrade.newImplementation,
+        dueDate: formatDate(details.endTime),
+        votesFor: formatVotes(details.forVotes),
+        votesAgainst: formatVotes(details.againstVotes),
+        totalVotes: formatVotes(details.forVotes + details.againstVotes),
+        description: basic.description,
+        level: LEVEL_MAPPING[level],
+        category,
+        threshold: formatBps(basic.requiredThreshold)
+      }
+    }))
+
+    upgradeData.value = rows
+    upgradeTotal.value = totalProposals
+  } catch (error) {
+    console.error('Failed to load upgrade proposals:', error)
+    message.error('Failed to load contract upgrade governance data')
+  } finally {
+    isLoadingTable.value = false
+  }
+}
+
+const fetchActiveProposals = async () => {
+  if (activeGovernance.value === 'parameter') {
+    await fetchParameterProposals()
+  } else {
+    await fetchUpgradeProposals()
+  }
+}
+
+const goToDetail = (id) => {
+  router.push(`/proposal/${activeGovernance.value}/${id}`)
+}
+
+onMounted(async () => {
+  await fetchParameterProposals()
+  await fetchUpgradeProposals()
+})
 </script>
 
 <style>
@@ -370,14 +864,16 @@ const paginationConfig = ref({
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   width: 100%;
-  max-width: 1100px;
+  max-width: 1120px;
   overflow: hidden;
 }
 
-/* Header border & flex */
 .stats-header {
   display: flex;
   border-bottom: 1px solid #f0f0f0;
+}
+.governance-summary {
+  background: #ffffff;
 }
 .go-back-section {
   padding: 24px;
@@ -386,10 +882,11 @@ const paginationConfig = ref({
   align-items: center;
   justify-content: center;
   width: 180px;
+  min-width: 180px;
 }
 .go-back-btn {
-  font-weight: 500;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: 16px;
   border-radius: 6px;
   color: #1f2937;
   border-color: #d1d5db;
@@ -400,7 +897,6 @@ const paginationConfig = ref({
   gap: 6px;
 }
 
-/* Stats Area */
 .stat-items {
   display: flex;
   flex: 1;
@@ -412,7 +908,8 @@ const paginationConfig = ref({
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center; /* Center contents */
+  align-items: center;
+  min-width: 0;
 }
 .last-stat {
   border-right: none;
@@ -431,37 +928,35 @@ const paginationConfig = ref({
   align-items: center;
   justify-content: center;
 }
-.proposals-view {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.stat-value.compact {
+  font-size: 18px;
+  text-align: center;
 }
-.view-btn {
+
+.governance-switch {
+  padding: 18px 24px 0;
+}
+:deep(.ant-segmented) {
   background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+  padding: 4px;
+  border-radius: 8px;
+}
+:deep(.ant-segmented-item) {
   border-radius: 6px;
-  padding: 0 14px;
-  height: 28px;
+  font-weight: 600;
+}
+:deep(.ant-segmented-item-selected) {
+  color: #111827;
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
 }
 
-/* SVG Voting Power Icon styling */
-.a-icon {
-  width: 28px;
-  height: 28px;
-  margin-right: 12px;
-  transform: translateY(-2px);
-}
-
-/* Filter Bar */
 .filter-bar {
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
+  gap: 20px;
 }
 .search-wrap {
   width: 360px;
@@ -512,28 +1007,152 @@ const paginationConfig = ref({
   background-color: #2563eb;
 }
 
-/* Table overrides */
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.upgrade-alert {
+  margin-bottom: 18px;
+  border-radius: 8px;
+}
+.network-flow {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.network-flow__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.network-flow__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.network-flow__desc {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.network-flow__tag {
+  margin-inline-end: 0;
+  font-weight: 700;
+  border-radius: 6px;
+}
+.network-flow__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.network-flow__step {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.network-flow__step.is-ready {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.network-flow__index {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 800;
+}
+.network-flow__step.is-ready .network-flow__index {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.network-flow__step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+.network-flow__step-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6b7280;
+}
+.prepare-network-btn {
+  margin-top: 12px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+.manual-network {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.manual-network__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+.manual-network__grid {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 6px 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.manual-network__grid strong {
+  color: #111827;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.implementation-tools {
+  display: flex;
+  gap: 12px;
+  margin: -2px 0 20px;
+}
+.tool-btn {
+  border-radius: 6px;
+  font-weight: 600;
+}
+
 :deep(.ant-table-thead > tr > th) {
   background: #fff !important;
-  color: #9ca3af !important;
-  font-weight: 600;
-  font-size: 12px;
+  color: #6b7280 !important;
+  font-weight: 700;
+  font-size: 13px;
   letter-spacing: 0.5px;
   border-bottom: 1px solid #f3f4f6;
 }
 :deep(.ant-table-tbody > tr > td) {
-  padding: 16px 24px;
-  font-size: 14px;
+  padding: 18px 24px;
+  font-size: 15px;
   color: #374151;
-  font-weight: 500;
+  font-weight: 600;
   border-bottom: 1px solid #f3f4f6;
 }
-
-/* Proposal link icon */
 .proposal-title {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.proposal-title span {
+  min-width: 0;
 }
 .link-icon {
   font-size: 12px;
@@ -542,9 +1161,16 @@ const paginationConfig = ref({
   border: 1px solid #e5e7eb;
   border-radius: 50%;
   padding: 2px;
+  flex: 0 0 auto;
+}
+.mono-address {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0;
 }
 
-/* Tags */
 .state-tag {
   display: inline-flex;
   align-items: center;
@@ -560,43 +1186,39 @@ const paginationConfig = ref({
   border-radius: 50%;
   margin-right: 6px;
 }
-
-/* Specific state colors */
 .active {
   border: 1px solid #c7d2fe;
   color: #4f46e5;
 }
 .active .dot { background-color: #4f46e5; }
-
 .succeeded {
   border: 1px solid #bbf7d0;
   color: #16a34a;
 }
 .succeeded .dot { background-color: #16a34a; }
-
 .executed {
   border: 1px solid #a5f3fc;
   color: #0891b2;
 }
 .executed .dot { background-color: #0891b2; }
-
+.canceled,
 .cancelled {
   border: 1px solid #d1d5db;
   color: #6b7280;
 }
+.canceled .dot,
 .cancelled .dot { background-color: #6b7280; }
-
 .defeated {
   border: 1px solid #fecaca;
   color: #dc2626;
 }
 .defeated .dot { background-color: #dc2626; }
-
 .pending {
   border: 1px solid #fde68a;
   color: #d97706;
 }
 .pending .dot { background-color: #d97706; }
+
 :deep(.custom-table-row) {
   cursor: pointer;
   transition: all 0.3s;
@@ -612,5 +1234,34 @@ const paginationConfig = ref({
 }
 :deep(.ant-pagination-item-active a) {
   color: #3b82f6;
+}
+
+@media (max-width: 980px) {
+  .stats-header,
+  .filter-bar,
+  .stat-items {
+    flex-direction: column;
+  }
+  .go-back-section,
+  .search-wrap {
+    width: auto;
+  }
+  .go-back-section,
+  .stat-box {
+    border-right: none;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .actions-wrap {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .network-flow__header,
+  .network-flow__steps {
+    display: flex;
+    flex-direction: column;
+  }
 }
 </style>

@@ -1,24 +1,39 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import Home from '../views/Home.vue'
+import Proposals from '../views/Proposals.vue'
+import ProposalDetail from '../views/ProposalDetail.vue'
+import UpgradeProposalDetail from '../views/UpgradeProposalDetail.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/proposals'
+    name: 'Home',
+    component: Home
   },
   {
     path: '/proposals',
     name: 'Proposals',
-    component: () => import('../views/Proposals.vue')
+    component: Proposals
   },
   {
     path: '/proposal/:id',
     name: 'ProposalDetail',
-    component: () => import('../views/ProposalDetail.vue')
+    redirect: (to) => `/proposal/parameter/${to.params.id}`
+  },
+  {
+    path: '/proposal/parameter/:id',
+    name: 'ParameterProposalDetail',
+    component: ProposalDetail
+  },
+  {
+    path: '/proposal/upgrade/:id',
+    name: 'UpgradeProposalDetail',
+    component: UpgradeProposalDetail
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })
 

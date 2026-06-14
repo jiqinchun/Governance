@@ -1,8 +1,16 @@
 <template>
-  <div class="app-layout">
+  <div class="app-layout" :class="{ 'app-layout--full': isFullBleed }">
     <router-view></router-view>
   </div>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isFullBleed = computed(() => route.name === 'Home')
+</script>
 
 <style>
 body {
@@ -15,5 +23,9 @@ body {
   padding: 40px;
   display: flex;
   justify-content: center;
+}
+.app-layout--full {
+  padding: 0;
+  display: block;
 }
 </style>
