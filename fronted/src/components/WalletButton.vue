@@ -534,4 +534,29 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .wallet-pill, .wallet-pill__caret, .wallet-connect, .wallet-menu__item { transition: none; }
 }
+
+@media (max-width: 640px) {
+  .wallet-connect {
+    gap: 6px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+
+  .wallet-pill {
+    gap: 7px;
+    padding: 6px 10px 6px 6px;
+    font-size: 13px;
+  }
+
+  .wallet-pill__fox {
+    width: 25px;
+    height: 25px;
+  }
+
+  .wallet-menu {
+    right: -4px;
+    max-width: calc(100vw - 24px);
+  }
+}
 </style>

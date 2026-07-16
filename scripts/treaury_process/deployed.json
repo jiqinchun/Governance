@@ -1,0 +1,107 @@
+{
+  "network": "punkchain",
+  "chainId": 20260418,
+  "govToken": "0x3DE1F7993C2c965fB88d7FDA7843F4f6FDA5AC38",
+  "treasury": "0xc4106cFC682f930C913e01069AbA1B7E340D98f1",
+  "nativeToken": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+  "nativeAsset": {
+    "symbol": "PUNK",
+    "decimals": 18
+  },
+  "deployer": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
+  "admin": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
+  "timestamp": "2026-07-03T13:28:26.477Z",
+  "assets": [
+    {
+      "name": "Mock USD",
+      "symbol": "mUSD",
+      "address": "0xC9018b6009Ac20D85a03464c052Bff6d84715BD9",
+      "decimals": 18,
+      "initialTreasuryAmount": "9051",
+      "treasuryBalance": "9051.0"
+    },
+    {
+      "name": "Mock Bitcoin",
+      "symbol": "mBTC",
+      "address": "0xeB3F4C5F4f2d0B33b3d710F18E83BF544147094B",
+      "decimals": 18,
+      "initialTreasuryAmount": "6614",
+      "treasuryBalance": "6614.0"
+    },
+    {
+      "name": "Mock Ether",
+      "symbol": "mETH",
+      "address": "0x633C72E44DF0A351d52249754493ABE75497e467",
+      "decimals": 18,
+      "initialTreasuryAmount": "1716",
+      "treasuryBalance": "1716.0"
+    },
+    {
+      "name": "Mock Storage Credit",
+      "symbol": "mSC",
+      "address": "0xc101c0B6FD18B7414f2098f746a447F584290225",
+      "decimals": 18,
+      "initialTreasuryAmount": "7202",
+      "treasuryBalance": "7202.0"
+    },
+    {
+      "name": "Mock Compute Credit",
+      "symbol": "mCC",
+      "address": "0x69a75BF3e052cDf11bc5aBbafd1245f65b092cAD",
+      "decimals": 18,
+      "initialTreasuryAmount": "2611",
+      "treasuryBalance": "2611.0"
+    },
+    {
+      "name": "Mock Bandwidth Token",
+      "symbol": "mBW",
+      "address": "0x89Bf9C95cCB5A33dB1f4D1cb2614d98138248236",
+      "decimals": 18,
+      "initialTreasuryAmount": "8398",
+      "treasuryBalance": "8398.0"
+    },
+    {
+      "name": "Mock Stable Reserve",
+      "symbol": "mSR",
+      "address": "0x0fe8c58bbe9C45eF7E50efa0Ee1276B8B2F26a23",
+      "decimals": 18,
+      "initialTreasuryAmount": "7353",
+      "treasuryBalance": "7353.0"
+    },
+    {
+      "name": "Mock Reward Token",
+      "symbol": "mRWD",
+      "address": "0xA1a2d50d27B63442D3a429F9B8cC3b3aCb1ea7D5",
+      "decimals": 18,
+      "initialTreasuryAmount": "3920",
+      "treasuryBalance": "3920.0"
+    },
+    {
+      "name": "Mock Governance Bond",
+      "symbol": "mBOND",
+      "address": "0xf1d29de3472831b8AC41db2E7A4126CB356da5f9",
+      "decimals": 18,
+      "initialTreasuryAmount": "5787",
+      "treasuryBalance": "5787.0"
+    },
+    {
+      "name": "Mock Data Token",
+      "symbol": "mDATA",
+      "address": "0xbf282b0976cBbb6EEbD13CB8c07632039f56fba5",
+      "decimals": 18,
+      "initialTreasuryAmount": "1914",
+      "treasuryBalance": "1914.0"
+    }
+  ],
+  "updatedAt": "2026-07-06T12:10:11.418Z",
+  "assetManager": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
+  "proposer": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
+  "voters": [
+    "0x05D888e9A58d8e9444c7Abf3C6653AA02313fD15",
+    "0x14429Db1dAFDcee8AFA5B867B3b089d025Ee8dda",
+    "0x6A5275F5B57090CEfC471074d331A9E2c38991e9",
+    "0x697DF7F02Be0cc48D8bc3D47b19De8d4738D3d56",
+    "0xCFB36bE95D0ADf86a3da7Ae48DE458893f2BFF1D"
+  ],
+  "executor": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0"
+}

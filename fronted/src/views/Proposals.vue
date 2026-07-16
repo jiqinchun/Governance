@@ -1,13 +1,6 @@
 <template>
   <div class="proposals-container">
     <div class="stats-header governance-summary">
-      <div class="go-back-section">
-        <a-button class="go-back-btn" @click="router.push('/')">
-          <template #icon><ArrowLeftOutlined style="font-size: 14px;" /></template>
-          Go Back
-        </a-button>
-      </div>
-
       <div class="stat-items">
         <div class="stat-box">
           <div class="stat-label">Governance Type</div>
@@ -80,7 +73,21 @@
       :class="'custom-create-modal'"
       :afterClose="resetParameterForm"
     >
-      <a-form layout="vertical" :model="parameterForm" @finish="handleCreateParameterProposal">
+      <div class="create-modal-hero create-modal-hero--parameter">
+        <div class="create-modal-hero__icon">
+          <SettingOutlined />
+        </div>
+        <div class="create-modal-hero__copy">
+          <span>Parameter Governance</span>
+          <strong>Submit a parameter value change for token-weighted voting.</strong>
+        </div>
+        <div class="create-modal-hero__meta">
+          <span>Registry</span>
+          <strong>{{ shortAddress(parameterDeployedData.paramRegistry) }}</strong>
+        </div>
+      </div>
+
+      <a-form class="create-proposal-form" layout="vertical" :model="parameterForm" @finish="handleCreateParameterProposal">
         <div class="form-grid">
           <a-form-item label="Parameter Name" name="name" :rules="[{ required: true, message: 'Please provide parameter name' }]">
             <a-input v-model:value="parameterForm.name" placeholder="e.g. minPowGas" size="large" />
@@ -96,8 +103,13 @@
         </a-form-item>
 
         <a-form-item label="Description" name="description" :rules="[{ required: true, message: 'Please provide description' }]">
-          <a-textarea v-model:value="parameterForm.description" placeholder="Describe why this parameter should change." :rows="6" size="large" />
+          <a-textarea v-model:value="parameterForm.description" placeholder="Describe why this parameter should change." :rows="5" size="large" />
         </a-form-item>
+
+        <div class="contract-preview">
+          <span>Contract call</span>
+          <strong>proposeParameterChange(parameterId, newValue, description)</strong>
+        </div>
 
         <a-form-item style="margin-bottom: 0;">
           <a-button type="primary" html-type="submit" block size="large" class="submit-btn" :loading="isCreating">
@@ -115,7 +127,21 @@
       :class="'custom-create-modal'"
       :afterClose="resetUpgradeForm"
     >
-      <a-form layout="vertical" :model="upgradeForm" @finish="handleCreateUpgradeProposal">
+      <div class="create-modal-hero create-modal-hero--upgrade">
+        <div class="create-modal-hero__icon">
+          <CodeOutlined />
+        </div>
+        <div class="create-modal-hero__copy">
+          <span>Contract Governance</span>
+          <strong>Prepare an implementation upgrade and optional migration calldata.</strong>
+        </div>
+        <div class="create-modal-hero__meta">
+          <span>Governance</span>
+          <strong>{{ shortAddress(upgradeDeployedData.upgradeGovernance) }}</strong>
+        </div>
+      </div>
+
+      <a-form class="create-proposal-form" layout="vertical" :model="upgradeForm" @finish="handleCreateUpgradeProposal">
         <a-alert
           class="upgrade-alert"
           type="info"
@@ -197,9 +223,11 @@
 
         <div class="implementation-tools">
           <a-button class="tool-btn" :loading="isDeployingImplementation" @click="deployV2Implementation">
+            <ToolOutlined />
             Deploy New V2 Implementation
           </a-button>
           <a-button class="tool-btn" @click="fillDeployedImplementation">
+            <SafetyCertificateOutlined />
             Use deployed.json Implementation
           </a-button>
         </div>
@@ -237,6 +265,11 @@
         <a-form-item label="Description" name="description" :rules="[{ required: true, message: 'Please provide description' }]">
           <a-textarea v-model:value="upgradeForm.description" placeholder="Describe the implementation change and migration intent." :rows="5" size="large" />
         </a-form-item>
+
+        <div class="contract-preview">
+          <span>Contract call</span>
+          <strong>proposeUpgrade(proxy, newImplementation, callData, description)</strong>
+        </div>
 
         <a-form-item style="margin-bottom: 0;">
           <a-button type="primary" html-type="submit" block size="large" class="submit-btn" :loading="isCreating">
@@ -291,10 +324,13 @@ import parameterDeployedData from '../../../scripts/upgrade_process/deployed.jso
 import upgradeDeployedData from '../../../scripts/contract_upgrade_process/deployed.json'
 import { useWallet } from '../composables/useWallet'
 import {
-  ArrowLeftOutlined,
   SearchOutlined,
   PlusOutlined,
-  ArrowRightOutlined
+  ArrowRightOutlined,
+  CodeOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+  ToolOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -360,7 +396,7 @@ const upgradeForm = reactive({
 })
 
 const activeGovernanceLabel = computed(() => (
-  activeGovernance.value === 'parameter' ? 'Parameters' : 'Upgrades'
+  activeGovernance.value === 'parameter' ? 'Parameters' : 'Contracts'
 ))
 
 const activeNetworkLabel = computed(() => (
@@ -827,49 +863,76 @@ onMounted(async () => {
 
 <style>
 .custom-create-modal .ant-modal-content {
-  border-radius: 12px;
+  border-radius: 18px;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(212, 223, 238, 0.92);
+  box-shadow: 0 28px 70px rgba(29, 42, 72, 0.22);
 }
 .custom-create-modal .ant-modal-header {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 20px 24px;
-  border-radius: 12px 12px 0 0;
+  margin: 0;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid #e6edf6;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(135deg, #fbfdff, #f2f6ff);
 }
 .custom-create-modal .ant-modal-title {
-  font-size: 20px;
-  font-weight: 600;
+  color: var(--app-text);
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 .custom-create-modal .ant-modal-body {
   padding: 24px;
+  background:
+    radial-gradient(circle at 90% 2%, rgba(88, 104, 242, 0.1), transparent 24%),
+    #ffffff;
+}
+.custom-create-modal .ant-form-item-label > label {
+  color: #344057;
+  font-weight: 850;
+}
+.custom-create-modal .ant-input,
+.custom-create-modal .ant-input-number,
+.custom-create-modal .ant-select-selector,
+.custom-create-modal .ant-input-affix-wrapper {
+  border-radius: 12px;
 }
 .custom-create-modal .submit-btn {
-  background-color: #5544FF;
+  background: linear-gradient(135deg, var(--app-primary), #775cf5);
   border: none;
   height: 48px;
   font-size: 16px;
-  border-radius: 6px;
+  border-radius: 13px;
+  font-weight: 900;
+  box-shadow: 0 13px 26px rgba(88, 104, 242, 0.24);
 }
 .custom-create-modal .submit-btn:hover {
-  background-color: #4034db;
+  background: linear-gradient(135deg, var(--app-primary-dark), #6248e4);
 }
 </style>
 
 <style scoped>
 .proposals-container {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  width: 100%;
-  max-width: 1120px;
+  width: min(var(--app-page-width), calc(100% - var(--app-page-gutter)));
+  margin: 0 auto;
+  background: var(--app-page-gradient);
+  border: 1px solid var(--app-border);
+  border-top: 0;
+  border-radius: 0 0 24px 24px;
+  box-shadow: var(--app-shadow);
   overflow: hidden;
+  box-sizing: border-box;
+  color: var(--app-text);
 }
 
 .stats-header {
   display: flex;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 0;
 }
 .governance-summary {
-  background: #ffffff;
+  padding: 24px 28px;
+  background: transparent;
 }
 .go-back-section {
   padding: 24px;
@@ -895,112 +958,131 @@ onMounted(async () => {
 
 .stat-items {
   display: flex;
+  gap: 16px;
   flex: 1;
 }
 .stat-box {
   flex: 1;
-  padding: 24px 16px;
-  border-right: 1px solid #f0f0f0;
+  min-height: 104px;
+  padding: 20px 18px;
+  border: 1px solid rgba(212, 223, 238, 0.92);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--app-shadow-soft);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  text-align: center;
   min-width: 0;
 }
 .last-stat {
-  border-right: none;
+  border-right: 1px solid rgba(212, 223, 238, 0.92);
 }
 .stat-label {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--app-muted);
+  margin-bottom: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--app-text);
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1.1;
 }
 .stat-value.compact {
-  font-size: 18px;
+  font-size: 21px;
   text-align: center;
 }
 
 .governance-switch {
-  padding: 18px 24px 0;
+  padding: 24px 28px 0;
 }
 :deep(.ant-segmented) {
-  background: #f3f4f6;
-  padding: 4px;
-  border-radius: 8px;
+  background: #edf2f8;
+  padding: 5px;
+  border-radius: 14px;
 }
 :deep(.ant-segmented-item) {
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-weight: 800;
+  color: #526078;
 }
 :deep(.ant-segmented-item-selected) {
-  color: #111827;
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+  color: var(--app-text);
+  box-shadow: 0 8px 18px rgba(57, 76, 115, 0.1);
 }
 
 .filter-bar {
-  padding: 16px 24px;
+  margin: 22px 28px 0;
+  padding: 18px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid var(--app-border-soft);
+  border-bottom: 1px solid var(--app-border-soft);
   gap: 20px;
 }
 .search-wrap {
-  width: 360px;
+  width: 400px;
 }
 .search-input {
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: 12px;
+  padding: 9px 13px;
+  border-color: #d7e1ee;
+  background: #ffffff;
+  font-weight: 700;
 }
 
 .actions-wrap {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 .select-group {
   display: flex;
   align-items: center;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 0 8px;
+  min-height: 42px;
+  border: 1px solid #d7e1ee;
+  border-radius: 12px;
+  padding: 0 10px 0 12px;
+  background: #ffffff;
 }
 .select-label {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 13px;
+  color: var(--app-muted);
+  font-weight: 800;
 }
 .custom-select {
   width: 140px;
 }
 :deep(.ant-select-selector) {
-  font-weight: 500;
-  color: #374151 !important;
+  font-weight: 800;
+  color: #2f3a50 !important;
 }
 .split-line {
   height: 24px;
   width: 1px;
-  background: #e5e7eb;
+  background: #dfe7f1;
   margin: 0 4px;
 }
 .new-proposal-btn {
-  background-color: #3b82f6;
-  border-radius: 6px;
-  font-weight: 600;
-  height: 38px;
-  padding: 0 20px;
-  box-shadow: none;
+  background: linear-gradient(135deg, var(--app-primary), #775cf5);
+  border: 0;
+  border-radius: 13px;
+  font-weight: 900;
+  height: 42px;
+  padding: 0 22px;
+  box-shadow: 0 13px 26px rgba(88, 104, 242, 0.24);
 }
 .new-proposal-btn:hover {
-  background-color: #2563eb;
+  background: linear-gradient(135deg, var(--app-primary-dark), #6248e4);
 }
 
 .form-grid {
@@ -1008,16 +1090,118 @@ onMounted(async () => {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
 }
+.create-modal-hero {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(150px, auto);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e2e9f4;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.9)),
+    #fbfdff;
+  box-shadow: 0 10px 24px rgba(66, 82, 118, 0.08);
+}
+.create-modal-hero--parameter {
+  border-color: rgba(88, 104, 242, 0.22);
+}
+.create-modal-hero--upgrade {
+  border-color: rgba(20, 184, 166, 0.26);
+}
+.create-modal-hero__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #536df6;
+  background: #eef2ff;
+  font-size: 20px;
+}
+.create-modal-hero--upgrade .create-modal-hero__icon {
+  color: #109981;
+  background: #e7fbf5;
+}
+.create-modal-hero__copy,
+.create-modal-hero__meta {
+  min-width: 0;
+}
+.create-modal-hero__copy span,
+.create-modal-hero__meta span {
+  display: block;
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.create-modal-hero__copy strong,
+.create-modal-hero__meta strong {
+  display: block;
+  margin-top: 4px;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.create-modal-hero__meta {
+  justify-self: end;
+  padding: 10px 12px;
+  border: 1px solid #dfe7f1;
+  border-radius: 13px;
+  background: #ffffff;
+  text-align: right;
+}
+.create-modal-hero__meta strong {
+  color: #344157;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.create-proposal-form {
+  margin-top: 0;
+}
+.contract-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -2px 0 18px;
+  padding: 12px 14px;
+  border: 1px dashed #cbd8ee;
+  border-radius: 14px;
+  background: #fbfdff;
+}
+.contract-preview span {
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.contract-preview strong {
+  color: #2f3a50;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
 .upgrade-alert {
   margin-bottom: 18px;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 .network-flow {
   margin-bottom: 20px;
   padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fbfcfe;
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbfdff, #f6f9ff);
 }
 .network-flow__header {
   display: flex;
@@ -1051,9 +1235,10 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 12px;
   background: #ffffff;
+  box-shadow: 0 8px 18px rgba(66, 82, 118, 0.05);
 }
 .network-flow__step.is-ready {
   border-color: #bbf7d0;
@@ -1089,8 +1274,8 @@ onMounted(async () => {
 }
 .prepare-network-btn {
   margin-top: 12px;
-  border-radius: 6px;
-  font-weight: 700;
+  border-radius: 12px;
+  font-weight: 850;
 }
 .manual-network {
   margin-top: 12px;
@@ -1123,57 +1308,90 @@ onMounted(async () => {
   margin: -2px 0 20px;
 }
 .tool-btn {
-  border-radius: 6px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: 12px;
+  font-weight: 800;
+  border-color: #d7e1ee;
+  background: #ffffff;
+  color: #344057;
+}
+.tool-btn:hover {
+  border-color: #aebcf4;
+  color: #445fe8;
+  background: #f7faff;
 }
 
+:deep(.ant-table-wrapper) {
+  padding: 0 22px 22px;
+}
+:deep(.ant-table) {
+  background: transparent;
+  color: var(--app-text);
+}
+:deep(.ant-table-container) {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--app-border-soft);
+  background: #ffffff;
+}
 :deep(.ant-table-thead > tr > th) {
-  background: #fff !important;
-  color: #6b7280 !important;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid #f3f4f6;
+  background: #f3f6fb !important;
+  color: #65748a !important;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--app-border-soft);
+  padding: 15px 20px;
 }
 :deep(.ant-table-tbody > tr > td) {
-  padding: 18px 24px;
+  padding: 18px 20px;
   font-size: 15px;
-  color: #374151;
-  font-weight: 600;
-  border-bottom: 1px solid #f3f4f6;
+  color: #2d384d;
+  font-weight: 750;
+  border-bottom: 1px solid var(--app-border-soft);
+  background: #ffffff;
+}
+:deep(.ant-table-tbody > tr:hover > td) {
+  background: #f7fbff !important;
 }
 .proposal-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  color: var(--app-text);
+  font-weight: 900;
 }
 .proposal-title span {
   min-width: 0;
 }
 .link-icon {
   font-size: 12px;
-  color: #9ca3af;
+  color: #5868f2;
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #dfe6f2;
   border-radius: 50%;
-  padding: 2px;
+  padding: 3px;
   flex: 0 0 auto;
+  background: #f7f9ff;
 }
 .mono-address {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #334155;
+  color: #344157;
   letter-spacing: 0;
 }
 
 .state-tag {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 900;
   background-color: #fff;
 }
 .state-tag .dot {
@@ -1217,19 +1435,19 @@ onMounted(async () => {
 
 :deep(.custom-table-row) {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
 }
 :deep(.custom-table-row:hover) {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: none;
 }
 :deep(.ant-table-wrapper .ant-pagination) {
-  margin: 16px 24px;
+  margin: 18px 0 0;
 }
 :deep(.ant-pagination-item-active) {
-  border-color: #3b82f6;
+  border-color: var(--app-primary);
 }
 :deep(.ant-pagination-item-active a) {
-  color: #3b82f6;
+  color: var(--app-primary);
 }
 
 @media (max-width: 980px) {
@@ -1253,6 +1471,28 @@ onMounted(async () => {
   }
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  .create-modal-hero {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .create-modal-hero__meta {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    text-align: left;
+  }
+  .contract-preview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .contract-preview strong {
+    text-align: left;
+  }
+  .implementation-tools {
+    flex-direction: column;
+  }
+  .tool-btn {
+    justify-content: center;
+    width: 100%;
   }
   .network-flow__header,
   .network-flow__steps {

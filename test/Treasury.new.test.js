@@ -19,8 +19,8 @@ describe("Treasury", function () {
   let otherUser;
 
   // Constants
-  const VOTING_DELAY = 24 * 60 * 60; // 1 day in seconds
-  const VOTING_PERIOD = 3 * 24 * 60 * 60; // 3 days in seconds
+  const VOTING_DELAY = 60;
+  const VOTING_PERIOD = 120;
   const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
   beforeEach(async function () {
@@ -155,6 +155,16 @@ describe("Treasury", function () {
 
         const admittedAssets = await treasury.getAdmittedAssets();
         expect(admittedAssets).to.not.include(punkAddress);
+      });
+
+      it("Should keep removed asset in allAssets history", async function () {
+        const punkAddress = await punkToken.getAddress();
+        await treasury.removeAsset(punkAddress);
+
+        const allAssets = await treasury.getAllAssets();
+        expect(allAssets).to.include(NATIVE_TOKEN);
+        expect(allAssets).to.include(punkAddress);
+        expect(await treasury.hasEverBeenAdmitted(punkAddress)).to.equal(true);
       });
 
       it("Should revert if non-admin tries to remove asset", async function () {
@@ -539,6 +549,8 @@ describe("Treasury", function () {
         const recipientBalanceBefore = await punkToken.balanceOf(recipient.address);
         
         await expect(treasury.execute(1))
+          .to.emit(treasury, "Withdraw")
+          .withArgs(await punkToken.getAddress(), recipient.address, ethers.parseEther("100"), "Test proposal")
           .to.emit(treasury, "ProposalExecuted")
           .withArgs(1);
         
@@ -562,7 +574,11 @@ describe("Treasury", function () {
         
         const recipientBalanceBefore = await ethers.provider.getBalance(recipient.address);
         
-        await treasury.execute(2);
+        await expect(treasury.execute(2))
+          .to.emit(treasury, "Withdraw")
+          .withArgs(NATIVE_TOKEN, recipient.address, ethers.parseEther("5"), "ETH grant")
+          .to.emit(treasury, "ProposalExecuted")
+          .withArgs(2);
         
         const recipientBalanceAfter = await ethers.provider.getBalance(recipient.address);
         expect(recipientBalanceAfter - recipientBalanceBefore).to.equal(ethers.parseEther("5"));
@@ -651,6 +667,102 @@ describe("Treasury", function () {
         
         await expect(treasury.execute(1))
           .to.be.revertedWith("Already executed");
+      });
+    });
+
+    describe("proposal state and views", function () {
+      beforeEach(async function () {
+        await treasury.connect(proposer).propose(
+          await punkToken.getAddress(),
+          recipient.address,
+          ethers.parseEther("100"),
+          "State proposal"
+        );
+      });
+
+      it("Should expose Pending and Active states", async function () {
+        expect(await treasury.getProposalState(1)).to.equal(0);
+
+        await time.increase(VOTING_DELAY + 1);
+
+        expect(await treasury.getProposalState(1)).to.equal(1);
+      });
+
+      it("Should expose Succeeded and Executed states", async function () {
+        await time.increase(VOTING_DELAY + 1);
+        await treasury.connect(voter1).vote(1, true);
+        await treasury.connect(voter2).vote(1, true);
+        await time.increase(VOTING_PERIOD + 1);
+
+        expect(await treasury.getProposalState(1)).to.equal(2);
+
+        await treasury.execute(1);
+        expect(await treasury.getProposalState(1)).to.equal(4);
+      });
+
+      it("Should expose Defeated state", async function () {
+        await time.increase(VOTING_DELAY + 1);
+        await treasury.connect(voter1).vote(1, false);
+        await treasury.connect(voter2).vote(1, true);
+        await time.increase(VOTING_PERIOD + 1);
+
+        expect(await treasury.getProposalState(1)).to.equal(3);
+      });
+
+      it("Should expose Canceled state", async function () {
+        await treasury.connect(proposer).cancel(1);
+
+        expect(await treasury.getProposalState(1)).to.equal(5);
+      });
+
+      it("Should return basic proposal information", async function () {
+        const basic = await treasury.getProposalBasic(1);
+
+        expect(basic.id).to.equal(1);
+        expect(basic.proposer).to.equal(proposer.address);
+        expect(basic.token).to.equal(await punkToken.getAddress());
+        expect(basic.target).to.equal(recipient.address);
+        expect(basic.description).to.equal("State proposal");
+        expect(basic.state).to.equal(0);
+      });
+
+      it("Should return proposal details", async function () {
+        const details = await treasury.getProposalDetails(1);
+
+        expect(details.amount).to.equal(ethers.parseEther("100"));
+        expect(details.forVotes).to.equal(0);
+        expect(details.againstVotes).to.equal(0);
+        expect(details.executed).to.equal(false);
+        expect(details.canceled).to.equal(false);
+      });
+
+      it("Should return voting results", async function () {
+        await time.increase(VOTING_DELAY + 1);
+        await treasury.connect(voter1).vote(1, true);
+        await treasury.connect(voter2).vote(1, false);
+
+        const results = await treasury.getVotingResults(1);
+
+        expect(results.forVotes).to.equal(ethers.parseEther("100"));
+        expect(results.againstVotes).to.equal(ethers.parseEther("50"));
+        expect(results.totalVotes).to.equal(ethers.parseEther("150"));
+        expect(results.forPercentage).to.equal(66);
+        expect(results.requiredQuorum).to.equal(ethers.parseEther("8"));
+        expect(results.hasQuorum).to.equal(true);
+        expect(results.isPassing).to.equal(true);
+      });
+
+      it("Should revert view functions for missing proposal", async function () {
+        await expect(treasury.getProposalState(999))
+          .to.be.revertedWith("Proposal does not exist");
+        await expect(treasury.getProposalBasic(999))
+          .to.be.revertedWith("Proposal does not exist");
+        await expect(treasury.getProposalDetails(999))
+          .to.be.revertedWith("Proposal does not exist");
+        await expect(treasury.getVotingResults(999))
+          .to.be.revertedWith("Proposal does not exist");
+        await expect(treasury.getProposal(999))
+          .to.be.revertedWith("Proposal does not exist");
       });
     });
 
@@ -798,6 +910,9 @@ describe("Treasury", function () {
       const assetInfo = await treasury.assets(punkAddress);
       expect(assetInfo.symbol).to.equal("PUNK2");
       expect(assetInfo.decimals).to.equal(8);
+
+      const allAssets = await treasury.getAllAssets();
+      expect(allAssets.filter((asset) => asset === punkAddress)).to.have.lengthOf(1);
     });
 
     it("Should keep funds when asset is removed", async function () {

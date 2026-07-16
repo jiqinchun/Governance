@@ -3,6 +3,8 @@ import Home from '../views/Home.vue'
 import Proposals from '../views/Proposals.vue'
 import ProposalDetail from '../views/ProposalDetail.vue'
 import UpgradeProposalDetail from '../views/UpgradeProposalDetail.vue'
+import Treasury from '../views/Treasury.vue'
+import TreasuryProposalDetail from '../views/TreasuryProposalDetail.vue'
 
 const routes = [
   {
@@ -14,6 +16,11 @@ const routes = [
     path: '/proposals',
     name: 'Proposals',
     component: Proposals
+  },
+  {
+    path: '/treasury',
+    name: 'Treasury',
+    component: Treasury
   },
   {
     path: '/proposal/:id',
@@ -29,6 +36,11 @@ const routes = [
     path: '/proposal/upgrade/:id',
     name: 'UpgradeProposalDetail',
     component: UpgradeProposalDetail
+  },
+  {
+    path: '/proposal/treasury/:id',
+    name: 'TreasuryProposalDetail',
+    component: TreasuryProposalDetail
   }
 ]
 

@@ -6,7 +6,7 @@
         Go Back
       </a-button>
       <div class="right-links">
-        <a-button class="action-btn link-btn" @click="refreshAll">
+        <a-button class="action-btn link-btn" :loading="isLoading" @click="refreshAll">
           Refresh <ReloadOutlined class="link-icon" />
         </a-button>
       </div>
@@ -16,7 +16,7 @@
       <a-col :xs="24" :lg="14">
         <div class="detail-card left-card">
           <div class="card-header">
-            <h2>Upgrade Proposal Overview</h2>
+            <h2>Treasury Proposal Overview</h2>
           </div>
 
           <div class="card-body">
@@ -62,37 +62,22 @@
 
             <div class="divider"></div>
 
-            <div class="upgrade-grid">
-              <div class="upgrade-field">
-                <span class="label text-faint">Proxy</span>
-                <span class="value mono">{{ proxyAddress }}</span>
+            <div class="treasury-transfer-grid">
+              <div class="transfer-field">
+                <span class="label text-faint">Asset</span>
+                <span class="value text-bold">{{ assetSymbol }}</span>
               </div>
-              <div class="upgrade-field">
-                <span class="label text-faint">Contract</span>
-                <span class="value text-bold">{{ proxyName }}</span>
+              <div class="transfer-field">
+                <span class="label text-faint">Amount</span>
+                <span class="value text-bold">{{ amountLabel }}</span>
               </div>
-              <div class="upgrade-field">
-                <span class="label text-faint">Level</span>
-                <span class="value text-bold">{{ proxyLevel }}</span>
+              <div class="transfer-field transfer-field--wide">
+                <span class="label text-faint">Token Address</span>
+                <span class="value mono">{{ tokenAddress }}</span>
               </div>
-              <div class="upgrade-field">
-                <span class="label text-faint">Category</span>
-                <span class="value text-bold">{{ proxyCategory }}</span>
-              </div>
-            </div>
-
-            <div class="implementation-panel">
-              <div class="implementation-row">
-                <span class="label text-faint">Old Implementation</span>
-                <span class="mono">{{ oldImplementation }}</span>
-              </div>
-              <div class="implementation-row">
-                <span class="label text-faint">New Implementation</span>
-                <span class="mono">{{ newImplementation }}</span>
-              </div>
-              <div class="implementation-row">
-                <span class="label text-faint">Call Data</span>
-                <span class="mono call-data">{{ readableCallData }}</span>
+              <div class="transfer-field transfer-field--wide">
+                <span class="label text-faint">Target</span>
+                <span class="value mono">{{ targetAddress }}</span>
               </div>
             </div>
           </div>
@@ -106,12 +91,12 @@
           </div>
           <div class="card-body">
             <div class="voting-power-row">
-              <span class="label text-faint">Required Approval</span>
-              <span class="value text-bold">{{ requiredThresholdLabel }}</span>
-            </div>
-            <div class="voting-power-row">
               <span class="label text-faint">Wallet</span>
               <span class="value text-bold">{{ walletLabel }}</span>
+            </div>
+            <div class="voting-power-row">
+              <span class="label text-faint">Required Quorum</span>
+              <span class="value text-bold">{{ requiredQuorumLabel }}</span>
             </div>
 
             <div class="vote-buttons">
@@ -126,10 +111,9 @@
             </div>
 
             <div v-if="proposalState === 'Pending' || proposalState === 'Active'" class="hint-text">
-              PunkChain uses real block time. Please wait until the voting window changes, then refresh.
+              PunkChain uses real block time. Refresh after the voting window changes.
             </div>
-
-            <div v-if="proposalState !== 'Active'" class="hint-text">
+            <div v-else class="hint-text">
               Voting is only available while the proposal is Active.
             </div>
           </div>
@@ -189,7 +173,7 @@
                 :loading="isExecuting"
                 @click="executeProposal"
               >
-                Execute Upgrade
+                Execute Transfer
               </a-button>
               <div v-if="proposalState !== 'Succeeded'" class="hint-text center">
                 Execution is available after the proposal succeeds.
@@ -198,23 +182,23 @@
           </div>
         </div>
 
-        <div class="detail-card right-card proxy-runtime">
+        <div class="detail-card right-card treasury-runtime">
           <div class="card-header">
-            <h2>Proxy Runtime</h2>
+            <h2>Treasury Runtime</h2>
           </div>
           <div class="card-body">
             <div class="stats-list">
               <div class="stat-row">
-                <div class="stat-label text-faint">Version</div>
-                <div class="stat-value text-bold">{{ proxyVersion }}</div>
+                <div class="stat-label text-faint">Asset Balance</div>
+                <div class="stat-value text-bold">{{ treasuryBalanceLabel }}</div>
               </div>
               <div class="stat-row">
-                <div class="stat-label text-faint">Value</div>
-                <div class="stat-value text-bold">{{ proxyValue }}</div>
+                <div class="stat-label text-faint">Deposited</div>
+                <div class="stat-value text-bold">{{ depositedLabel }}</div>
               </div>
               <div class="stat-row">
-                <div class="stat-label text-faint">Multiplier</div>
-                <div class="stat-value text-bold">{{ proxyMultiplier }}</div>
+                <div class="stat-label text-faint">Withdrawn</div>
+                <div class="stat-value text-bold">{{ withdrawnLabel }}</div>
               </div>
             </div>
           </div>
@@ -225,13 +209,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { ethers } from 'ethers'
-import UpgradeGovernanceArtifact from '../../../artifacts/contracts/UpgradeGovernance.sol/UpgradeGovernance.json'
-import UpgradeableCounterV2Artifact from '../../../artifacts/contracts/mocks/UpgradeableCounterV2.sol/UpgradeableCounterV2.json'
-import deployedData from '../../../scripts/contract_upgrade_process/deployed.json'
+import TreasuryArtifact from '../../../artifacts/contracts/Treasury.sol/Treasury.json'
+import treasuryDeployedData from '../../../scripts/treaury_process/deployed.json'
 import { useWallet } from '../composables/useWallet'
 import {
   ArrowLeftOutlined,
@@ -242,61 +225,66 @@ import {
 
 const router = useRouter()
 const route = useRoute()
-const { account, chainId, shortAddress: connectedShortAddress, connect, getSigner } = useWallet()
+const { account, chainId, connect, getSigner, switchToPunkChain, shortAddress: connectedShortAddress } = useWallet()
 
-const RPC_URL = 'http://47.243.174.71:36054'
+const RPC_URL = import.meta.env.VITE_TREASURY_RPC_URL || 'http://47.243.174.71:36054'
+const TREASURY_ADDRESS = import.meta.env.VITE_TREASURY_ADDRESS || treasuryDeployedData.treasury || ''
 const PUNKCHAIN_CHAIN_ID = '0x1352642'
-const PUNKCHAIN_NETWORK = {
-  chainId: PUNKCHAIN_CHAIN_ID,
-  chainName: 'PunkChain',
-  nativeCurrency: { name: 'Punk', symbol: 'PUNK', decimals: 18 },
-  rpcUrls: [RPC_URL],
-  blockExplorerUrls: []
-}
+const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 const STATE_MAPPING = ['Pending', 'Active', 'Succeeded', 'Defeated', 'Executed', 'Canceled']
-const LEVEL_MAPPING = ['Application', 'System', 'Infrastructure']
 const VOTING_DELAY = 60
 
 const currentProposalId = route.params.id
+const provider = new ethers.JsonRpcProvider(RPC_URL)
 
-const proposalState = ref('Loading')
-const votesFor = ref(0)
-const votesAgainst = ref(0)
-const requiredThreshold = ref(0)
-const forPercentageBps = ref(0)
-const isPassing = ref(false)
-
-const startTime = ref(0)
-const endTime = ref(0)
-const proposerInfo = ref('')
-const descriptionInfo = ref('')
-const proposalTitle = ref('Loading...')
-const proxyAddress = ref('')
-const proxyName = ref('Loading...')
-const proxyLevel = ref('Loading...')
-const proxyCategory = ref('Loading...')
-const oldImplementation = ref('')
-const newImplementation = ref('')
-const callData = ref('0x')
-
-const proxyVersion = ref('Loading...')
-const proxyValue = ref('Loading...')
-const proxyMultiplier = ref('Loading...')
-
+const isLoading = ref(false)
 const isVotingFor = ref(false)
 const isVotingAgainst = ref(false)
 const isExecuting = ref(false)
 
-const provider = new ethers.JsonRpcProvider(RPC_URL)
+const proposalState = ref('Loading')
+const proposerInfo = ref('')
+const tokenAddress = ref('')
+const targetAddress = ref('')
+const amountRaw = ref(0n)
+const descriptionInfo = ref('')
+const startTime = ref(0)
+const endTime = ref(0)
+const votesForRaw = ref(0n)
+const votesAgainstRaw = ref(0n)
+const requiredQuorumRaw = ref(0n)
+const hasQuorum = ref(false)
+const isPassing = ref(false)
+const assetSymbol = ref('Asset')
+const assetDecimals = ref(18)
+const treasuryBalanceRaw = ref(0n)
+const depositedRaw = ref(0n)
+const withdrawnRaw = ref(0n)
 
 const goBack = () => {
-  router.push('/proposals')
+  router.push('/treasury')
 }
 
 const short = (address) => {
-  if (!address || address === ethers.ZeroAddress) return '0x0000...0000'
+  if (!address || !ethers.isAddress(address)) return 'Not configured'
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
+
+const formatTokenAmount = (amount, decimals = 18) => {
+  try {
+    const value = Number(ethers.formatUnits(amount || 0n, decimals))
+    if (!Number.isFinite(value)) return '0'
+    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`
+    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`
+    return value.toLocaleString('en-US', { maximumFractionDigits: 4 })
+  } catch {
+    return '0'
+  }
+}
+
+const buildTreasuryProposalTitle = (amount, decimals, symbol, target) => (
+  `Treasury proposal to transfer ${formatTokenAmount(amount, decimals)} ${symbol} to ${target}`
+)
 
 const createdDateObj = computed(() => {
   if (!startTime.value) return 'Loading...'
@@ -322,6 +310,13 @@ const endTimeStr = computed(() => {
   })
 })
 
+const proposalTitle = computed(() => buildTreasuryProposalTitle(
+  amountRaw.value,
+  assetDecimals.value,
+  assetSymbol.value,
+  targetAddress.value || 'target'
+))
+
 const summaryText = computed(() => {
   if (!descriptionInfo.value) return 'Loading...'
   const firstDot = descriptionInfo.value.indexOf('.')
@@ -330,65 +325,27 @@ const summaryText = computed(() => {
 
 const proposerShort = computed(() => short(proposerInfo.value))
 const walletLabel = computed(() => account.value ? connectedShortAddress.value : 'Not connected')
-const requiredThresholdLabel = computed(() => `${(Number(requiredThreshold.value) / 100).toFixed(2)}%`)
+const amountLabel = computed(() => `${formatTokenAmount(amountRaw.value, assetDecimals.value)} ${assetSymbol.value}`)
+const treasuryBalanceLabel = computed(() => `${formatTokenAmount(treasuryBalanceRaw.value, assetDecimals.value)} ${assetSymbol.value}`)
+const depositedLabel = computed(() => `${formatTokenAmount(depositedRaw.value, assetDecimals.value)} ${assetSymbol.value}`)
+const withdrawnLabel = computed(() => `${formatTokenAmount(withdrawnRaw.value, assetDecimals.value)} ${assetSymbol.value}`)
+const votesFor = computed(() => Number(ethers.formatEther(votesForRaw.value || 0n)))
+const votesAgainst = computed(() => Number(ethers.formatEther(votesAgainstRaw.value || 0n)))
 const currentVotes = computed(() => votesFor.value + votesAgainst.value)
 const percentFor = computed(() => currentVotes.value === 0 ? 0 : Number(((votesFor.value / currentVotes.value) * 100).toFixed(2)))
 const percentAgainst = computed(() => currentVotes.value === 0 ? 0 : Number(((votesAgainst.value / currentVotes.value) * 100).toFixed(2)))
-const approvalRateLabel = computed(() => `${(Number(forPercentageBps.value) / 100).toFixed(2)}%`)
-
-const readableCallData = computed(() => {
-  if (!callData.value || callData.value === '0x') return '0x'
-
-  try {
-    const iface = new ethers.Interface(UpgradeableCounterV2Artifact.abi)
-    const parsed = iface.parseTransaction({ data: callData.value })
-    if (parsed.name === 'initializeV2') {
-      return `initializeV2(${parsed.args[0].toString()})`
-    }
-  } catch {
-    // Keep raw calldata when it is not known to the V2 ABI.
-  }
-
-  return callData.value
-})
+const approvalRateLabel = computed(() => `${percentFor.value.toFixed(2)}%`)
+const requiredQuorumLabel = computed(() => `${formatTokenAmount(requiredQuorumRaw.value, 18)} GOV`)
 
 const getReadContract = () => (
-  new ethers.Contract(deployedData.upgradeGovernance, UpgradeGovernanceArtifact.abi, provider)
+  new ethers.Contract(TREASURY_ADDRESS, TreasuryArtifact.abi, provider)
 )
 
-const ensurePunkChainNetwork = async () => {
-  if (typeof window === 'undefined' || !window.ethereum) {
-    message.error('MetaMask not detected. Please open this page in a browser with MetaMask enabled.')
-    return false
-  }
-
-  const currentChainId = await window.ethereum.request({ method: 'eth_chainId' })
-  if (currentChainId?.toLowerCase() === PUNKCHAIN_CHAIN_ID) return true
-
-  try {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: PUNKCHAIN_CHAIN_ID }]
-    })
-    chainId.value = PUNKCHAIN_CHAIN_ID
-    message.success('Switched to PunkChain')
-    return true
-  } catch (err) {
-    if (err?.code === 4902) {
-      message.warning('Please add PunkChain manually in MetaMask. Remote HTTP RPC URLs cannot be added automatically by MetaMask.')
-      return false
-    }
-
-    if (err?.code !== 4001) {
-      message.error(err?.shortMessage || err?.message || 'Failed to switch to PunkChain')
-    }
-    return false
-  }
-}
-
 const getWriteContract = async () => {
-  const onPunkChain = await ensurePunkChainNetwork()
-  if (!onPunkChain) return null
+  if (chainId.value?.toLowerCase() !== PUNKCHAIN_CHAIN_ID) {
+    const switched = await switchToPunkChain()
+    if (!switched) return null
+  }
 
   let signer = await getSigner()
   if (!signer) {
@@ -397,79 +354,57 @@ const getWriteContract = async () => {
     signer = await getSigner()
   }
 
-  return new ethers.Contract(deployedData.upgradeGovernance, UpgradeGovernanceArtifact.abi, signer)
+  return new ethers.Contract(TREASURY_ADDRESS, TreasuryArtifact.abi, signer)
 }
 
 const fetchProposalData = async () => {
-  try {
-    const upgradeGovernance = getReadContract()
+  const treasury = getReadContract()
 
-    const [basic, details, upgrade, voting] = await Promise.all([
-      upgradeGovernance.getProposalBasic(currentProposalId),
-      upgradeGovernance.getProposalDetails(currentProposalId),
-      upgradeGovernance.getProposalUpgrade(currentProposalId),
-      upgradeGovernance.getVotingResults(currentProposalId)
-    ])
+  const [basic, details, voting] = await Promise.all([
+    treasury.getProposalBasic(currentProposalId),
+    treasury.getProposalDetails(currentProposalId),
+    treasury.getVotingResults(currentProposalId)
+  ])
 
-    proposalState.value = STATE_MAPPING[Number(basic.state)]
-    proposerInfo.value = basic.proposer
-    descriptionInfo.value = basic.description
-    proxyAddress.value = basic.proxy
-    requiredThreshold.value = Number(basic.requiredThreshold)
+  proposalState.value = STATE_MAPPING[Number(basic.state ?? basic[5])] || 'Unknown'
+  proposerInfo.value = basic.proposer ?? basic[1]
+  tokenAddress.value = basic.token ?? basic[2]
+  targetAddress.value = basic.target ?? basic[3]
+  descriptionInfo.value = basic.description ?? basic[4]
 
-    callData.value = details.callData
-    startTime.value = Number(details.startTime)
-    endTime.value = Number(details.endTime)
-    votesFor.value = Number(ethers.formatEther(details.forVotes))
-    votesAgainst.value = Number(ethers.formatEther(details.againstVotes))
-
-    oldImplementation.value = upgrade.oldImplementation
-    newImplementation.value = upgrade.newImplementation
-    forPercentageBps.value = Number(voting.forPercentage)
-    isPassing.value = voting.isPassing
-
-    const proxyInfo = await upgradeGovernance.getUpgradeableContract(basic.proxy)
-    proxyName.value = proxyInfo.name
-    proxyLevel.value = LEVEL_MAPPING[Number(proxyInfo.level)]
-    proxyCategory.value = ethers.decodeBytes32String(proxyInfo.category)
-    proposalTitle.value = `${proxyInfo.name} upgrade to ${short(upgrade.newImplementation)}`
-  } catch (error) {
-    console.error('Failed fetching upgrade proposal:', error)
-    message.error(`Failed to load upgrade proposal: ${error.shortMessage || error.reason || error.message}`)
-  }
+  amountRaw.value = details.amount ?? details[0]
+  startTime.value = Number(details.startTime ?? details[1])
+  endTime.value = Number(details.endTime ?? details[2])
+  votesForRaw.value = details.forVotes ?? details[3]
+  votesAgainstRaw.value = details.againstVotes ?? details[4]
+  requiredQuorumRaw.value = voting.requiredQuorum ?? voting[4]
+  hasQuorum.value = Boolean(voting.hasQuorum ?? voting[5])
+  isPassing.value = Boolean(voting.isPassing ?? voting[6])
 }
 
-const fetchProxyRuntime = async () => {
-  if (!proxyAddress.value) return
+const fetchAssetStats = async () => {
+  if (!tokenAddress.value) return
+  const treasury = getReadContract()
+  const stats = await treasury.getAssetStats(tokenAddress.value)
 
-  try {
-    const proxy = new ethers.Contract(proxyAddress.value, UpgradeableCounterV2Artifact.abi, provider)
-
-    const [version, value] = await Promise.all([
-      proxy.version(),
-      proxy.value()
-    ])
-
-    proxyVersion.value = version
-    proxyValue.value = value.toString()
-
-    try {
-      const multiplier = await proxy.multiplier()
-      proxyMultiplier.value = multiplier.toString()
-    } catch {
-      proxyMultiplier.value = 'Unavailable'
-    }
-  } catch (error) {
-    console.warn('Failed to load proxy runtime:', error)
-    proxyVersion.value = 'Unavailable'
-    proxyValue.value = 'Unavailable'
-    proxyMultiplier.value = 'Unavailable'
-  }
+  assetSymbol.value = stats.symbol || stats[1] || (tokenAddress.value.toLowerCase() === NATIVE_TOKEN.toLowerCase() ? 'PUNK' : 'Asset')
+  assetDecimals.value = Number(stats.decimals ?? stats[2] ?? 18)
+  treasuryBalanceRaw.value = stats.balance ?? stats[3]
+  depositedRaw.value = stats.totalDeposited ?? stats[4]
+  withdrawnRaw.value = stats.totalWithdrawn ?? stats[5]
 }
 
 const refreshAll = async () => {
-  await fetchProposalData()
-  await fetchProxyRuntime()
+  isLoading.value = true
+  try {
+    await fetchProposalData()
+    await fetchAssetStats()
+  } catch (error) {
+    console.error('Failed to load treasury proposal:', error)
+    message.error(`Failed to load treasury proposal: ${error.shortMessage || error.reason || error.message}`)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handleVote = async (support) => {
@@ -480,16 +415,16 @@ const handleVote = async (support) => {
   }
 
   try {
-    const upgradeGovernance = await getWriteContract()
-    if (!upgradeGovernance) return
+    const treasury = await getWriteContract()
+    if (!treasury) return
 
-    const tx = await upgradeGovernance.vote(currentProposalId, support)
+    const tx = await treasury.vote(currentProposalId, support)
     await tx.wait()
 
     message.success(`Vote ${support ? 'for' : 'against'} submitted`)
     await refreshAll()
   } catch (error) {
-    console.error('Vote failed:', error)
+    console.error('Treasury vote failed:', error)
     message.error(`Vote failed: ${error.shortMessage || error.reason || error.message}`)
   } finally {
     isVotingFor.value = false
@@ -499,24 +434,22 @@ const handleVote = async (support) => {
 
 const executeProposal = async () => {
   isExecuting.value = true
-
   try {
-    const upgradeGovernance = await getWriteContract()
-    if (!upgradeGovernance) return
+    const treasury = await getWriteContract()
+    if (!treasury) return
 
-    const tx = await upgradeGovernance.executeUpgrade(currentProposalId)
+    const tx = await treasury.execute(currentProposalId)
     await tx.wait()
 
-    message.success('Upgrade executed successfully')
+    message.success('Treasury proposal executed successfully')
     await refreshAll()
   } catch (error) {
-    console.error('Execution failed:', error)
+    console.error('Treasury execution failed:', error)
     message.error(`Execution failed: ${error.shortMessage || error.reason || error.message}`)
   } finally {
     isExecuting.value = false
   }
 }
-
 
 onMounted(refreshAll)
 </script>
@@ -700,12 +633,12 @@ onMounted(refreshAll)
   white-space: pre-wrap;
 }
 
-.upgrade-grid {
+.treasury-transfer-grid {
   display: grid;
-  grid-template-columns: 1.25fr 0.85fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-.upgrade-field {
+.transfer-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -714,26 +647,8 @@ onMounted(refreshAll)
   border: 1px solid #F3F4F6;
   border-radius: 8px;
 }
-.implementation-panel {
-  margin-top: 18px;
-  border: 1px solid #F3F4F6;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.implementation-row {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #F3F4F6;
-}
-.implementation-row:last-child {
-  border-bottom: none;
-}
-.call-data {
-  max-height: 84px;
-  overflow: auto;
+.transfer-field--wide {
+  grid-column: 1 / -1;
 }
 
 .voting-power-row {
@@ -765,13 +680,6 @@ onMounted(refreshAll)
   color: #EF4444;
   border: 1px solid #EF4444;
   background: #FEF2F2;
-}
-.local-tools {
-  margin-top: 14px;
-}
-.tool-btn {
-  border-radius: 6px;
-  font-weight: 600;
 }
 .hint-text {
   margin-top: 12px;
@@ -865,15 +773,10 @@ onMounted(refreshAll)
 
 @media (max-width: 980px) {
   .top-actions,
-  .vote-buttons,
-  .implementation-row {
+  .vote-buttons {
     flex-direction: column;
   }
-  .implementation-row {
-    display: flex;
-    align-items: flex-start;
-  }
-  .upgrade-grid {
+  .treasury-transfer-grid {
     grid-template-columns: 1fr;
   }
 }

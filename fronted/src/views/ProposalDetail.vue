@@ -475,9 +475,16 @@ const percentAgainst = computed(() => {
 
 <style scoped>
 .proposal-detail-container {
-  width: 100%;
-  max-width: 1100px;
+  width: min(var(--app-page-width), calc(100% - var(--app-page-gutter)));
   margin: 0 auto;
+  min-height: calc(100vh - 73px);
+  padding: 28px;
+  box-sizing: border-box;
+  background: var(--app-page-gradient);
+  border: 1px solid var(--app-border);
+  border-top: 0;
+  border-radius: 0 0 24px 24px;
+  box-shadow: var(--app-shadow);
 }
 
 /* Typography Helpers */

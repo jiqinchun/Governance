@@ -25,6 +25,20 @@ interface IERC20 {
  * Note: PUNK is the native token of this chain (similar to ETH on Ethereum).
  */
 contract Treasury {
+    // ============ Enums ============
+
+    /**
+     * @dev Proposal states.
+     */
+    enum ProposalState {
+        Pending,
+        Active,
+        Succeeded,
+        Defeated,
+        Executed,
+        Canceled
+    }
+
     // ============ Constants ============
     
     // Special address representing native token (PUNK)
@@ -32,8 +46,8 @@ contract Treasury {
     address public constant NATIVE_TOKEN = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     
     // Governance Constants
-    uint256 public constant VOTING_DELAY = 1 days; // Time between proposal and voting start
-    uint256 public constant VOTING_PERIOD = 3 days; // Duration of voting
+    uint256 public constant VOTING_DELAY = 60; // Time before voting starts (seconds)
+    uint256 public constant VOTING_PERIOD = 120; // Voting duration (seconds)
     uint256 public constant MIN_QUORUM_PERCENTAGE = 4; // 4% of total supply needed
 
     // ============ State Variables ============
@@ -60,6 +74,9 @@ contract Treasury {
     
     // List of all admitted asset addresses
     address[] public admittedAssets;
+    // List of every asset that has ever been admitted, including removed assets
+    address[] public allAssets;
+    mapping(address => bool) public hasEverBeenAdmitted;
     
     // ============ Proposal Structure ============
     
@@ -134,6 +151,8 @@ contract Treasury {
             totalWithdrawn: 0
         });
         admittedAssets.push(NATIVE_TOKEN);
+        allAssets.push(NATIVE_TOKEN);
+        hasEverBeenAdmitted[NATIVE_TOKEN] = true;
         emit AssetAdmitted(NATIVE_TOKEN, "PUNK", 18);
     }
     
@@ -150,14 +169,23 @@ contract Treasury {
         require(token != NATIVE_TOKEN, "Use NATIVE_TOKEN constant for native token");
         require(!assets[token].isAdmitted, "Asset already admitted");
         
+        AssetInfo storage existing = assets[token];
+        uint256 totalDeposited = existing.totalDeposited;
+        uint256 totalWithdrawn = existing.totalWithdrawn;
+
         assets[token] = AssetInfo({
             isAdmitted: true,
             symbol: symbol,
             decimals: decimals,
-            totalDeposited: 0,
-            totalWithdrawn: 0
+            totalDeposited: totalDeposited,
+            totalWithdrawn: totalWithdrawn
         });
         admittedAssets.push(token);
+
+        if (!hasEverBeenAdmitted[token]) {
+            allAssets.push(token);
+            hasEverBeenAdmitted[token] = true;
+        }
         
         emit AssetAdmitted(token, symbol, decimals);
     }
@@ -201,6 +229,13 @@ contract Treasury {
      */
     function getAdmittedAssets() external view returns (address[] memory) {
         return admittedAssets;
+    }
+
+    /**
+     * @dev Returns every asset that has ever been admitted, including removed assets.
+     */
+    function getAllAssets() external view returns (address[] memory) {
+        return allAssets;
     }
     
     /**
@@ -357,13 +392,7 @@ contract Treasury {
         // Check if the asset is still admitted
         require(assets[proposal.token].isAdmitted, "Asset no longer admitted");
 
-        uint256 totalVotes = proposal.forVotes + proposal.againstVotes;
-        uint256 totalSupply = govToken.totalSupply();
-        
-        // Check Quorum
-        require(totalVotes >= (totalSupply * MIN_QUORUM_PERCENTAGE) / 100, "Quorum not reached");
-        
-        // Check Majority
+        require(_hasQuorum(proposalId), "Quorum not reached");
         require(proposal.forVotes > proposal.againstVotes, "Proposal failed");
 
         // Check Treasury Balance
@@ -385,6 +414,7 @@ contract Treasury {
             require(IERC20(proposal.token).transfer(proposal.target, proposal.amount), "Token transfer failed");
         }
 
+        emit Withdraw(proposal.token, proposal.target, proposal.amount, proposal.description);
         emit ProposalExecuted(proposalId);
     }
 
@@ -404,6 +434,109 @@ contract Treasury {
     }
     
     // ============ View Functions ============
+
+    /**
+     * @dev Returns the current state of a proposal.
+     * @param proposalId The proposal ID.
+     */
+    function getProposalState(uint256 proposalId) public view returns (ProposalState) {
+        Proposal storage proposal = proposals[proposalId];
+        require(proposal.id != 0, "Proposal does not exist");
+
+        if (proposal.canceled) {
+            return ProposalState.Canceled;
+        }
+
+        if (proposal.executed) {
+            return ProposalState.Executed;
+        }
+
+        if (block.timestamp < proposal.startTime) {
+            return ProposalState.Pending;
+        }
+
+        if (block.timestamp <= proposal.endTime) {
+            return ProposalState.Active;
+        }
+
+        if (_isProposalSuccessful(proposalId)) {
+            return ProposalState.Succeeded;
+        }
+
+        return ProposalState.Defeated;
+    }
+
+    /**
+     * @dev Checks whether a proposal has reached quorum and majority.
+     * @param proposalId The proposal ID.
+     */
+    function _isProposalSuccessful(uint256 proposalId) internal view returns (bool) {
+        Proposal storage proposal = proposals[proposalId];
+        return _hasQuorum(proposalId) && proposal.forVotes > proposal.againstVotes;
+    }
+
+    /**
+     * @dev Checks whether a proposal has enough total participation.
+     * @param proposalId The proposal ID.
+     */
+    function _hasQuorum(uint256 proposalId) internal view returns (bool) {
+        Proposal storage proposal = proposals[proposalId];
+        uint256 totalVotes = proposal.forVotes + proposal.againstVotes;
+        uint256 totalSupply = govToken.totalSupply();
+        return totalVotes >= (totalSupply * MIN_QUORUM_PERCENTAGE) / 100;
+    }
+
+    /**
+     * @dev Returns basic proposal information.
+     * @param proposalId The proposal ID.
+     */
+    function getProposalBasic(uint256 proposalId) external view returns (
+        uint256 id,
+        address proposer,
+        address token,
+        address target,
+        string memory description,
+        ProposalState state
+    ) {
+        Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Proposal does not exist");
+
+        return (
+            p.id,
+            p.proposer,
+            p.token,
+            p.target,
+            p.description,
+            getProposalState(proposalId)
+        );
+    }
+
+    /**
+     * @dev Returns proposal timing, amount, and voting information.
+     * @param proposalId The proposal ID.
+     */
+    function getProposalDetails(uint256 proposalId) external view returns (
+        uint256 amount,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 forVotes,
+        uint256 againstVotes,
+        bool executed,
+        bool canceled
+    ) {
+        Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Proposal does not exist");
+
+        return (
+            p.amount,
+            p.startTime,
+            p.endTime,
+            p.forVotes,
+            p.againstVotes,
+            p.executed,
+            p.canceled
+        );
+    }
     
     /**
      * @dev Returns detailed information about a proposal.
@@ -423,6 +556,8 @@ contract Treasury {
         bool canceled
     ) {
         Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Proposal does not exist");
+
         return (
             p.proposer,
             p.token,
@@ -436,6 +571,31 @@ contract Treasury {
             p.executed,
             p.canceled
         );
+    }
+
+    /**
+     * @dev Returns the current voting results for a proposal.
+     * @param proposalId The proposal ID.
+     */
+    function getVotingResults(uint256 proposalId) external view returns (
+        uint256 forVotes,
+        uint256 againstVotes,
+        uint256 totalVotes,
+        uint256 forPercentage,
+        uint256 requiredQuorum,
+        bool hasQuorum,
+        bool isPassing
+    ) {
+        Proposal storage proposal = proposals[proposalId];
+        require(proposal.id != 0, "Proposal does not exist");
+
+        forVotes = proposal.forVotes;
+        againstVotes = proposal.againstVotes;
+        totalVotes = forVotes + againstVotes;
+        forPercentage = totalVotes > 0 ? (forVotes * 100) / totalVotes : 0;
+        requiredQuorum = (govToken.totalSupply() * MIN_QUORUM_PERCENTAGE) / 100;
+        hasQuorum = totalVotes >= requiredQuorum;
+        isPassing = hasQuorum && forVotes > againstVotes;
     }
     
     /**
