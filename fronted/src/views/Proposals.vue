@@ -199,7 +199,7 @@
             <div class="manual-network__grid">
               <span>Network Name</span><strong>PunkChain</strong>
               <span>RPC URL</span><strong>http://47.243.174.71:36054</strong>
-              <span>Chain ID</span><strong>20260418</strong>
+              <span>Chain ID</span><strong>20260902</strong>
               <span>Currency Symbol</span><strong>PUNK</strong>
             </div>
           </div>
@@ -338,7 +338,7 @@ const { chainId, connect, getSigner } = useWallet()
 
 const PARAMETER_RPC_URL = 'http://47.243.174.71:36054'
 const UPGRADE_RPC_URL = 'http://47.243.174.71:36054'
-const PUNKCHAIN_CHAIN_ID = '0x1352642'
+const PUNKCHAIN_CHAIN_ID = '0x1352826'
 const PK_DEPLOYER = 'eeefa7075d12e965851eef8e2622377d480f8b9c99c30cb615cf222b699b491f'
 
 const PUNKCHAIN_NETWORK = {

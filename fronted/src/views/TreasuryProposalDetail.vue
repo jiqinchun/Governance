@@ -229,7 +229,7 @@ const { account, chainId, connect, getSigner, switchToPunkChain, shortAddress: c
 
 const RPC_URL = import.meta.env.VITE_TREASURY_RPC_URL || 'http://47.243.174.71:36054'
 const TREASURY_ADDRESS = import.meta.env.VITE_TREASURY_ADDRESS || treasuryDeployedData.treasury || ''
-const PUNKCHAIN_CHAIN_ID = '0x1352642'
+const PUNKCHAIN_CHAIN_ID = '0x1352826'
 const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 const STATE_MAPPING = ['Pending', 'Active', 'Succeeded', 'Defeated', 'Executed', 'Canceled']
 const VOTING_DELAY = 60

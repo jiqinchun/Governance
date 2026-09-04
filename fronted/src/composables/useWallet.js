@@ -7,7 +7,7 @@ const authorizedAccounts = ref([])
 const connecting = ref(false)
 const chainId = ref('')
 
-const PUNKCHAIN_CHAIN_ID = '0x1352642'
+const PUNKCHAIN_CHAIN_ID = '0x1352826'
 const LOCALHOST_CHAIN_ID = '0x7a69'
 const MANUAL_DISCONNECT_KEY = 'governance.wallet.manualDisconnect'
 

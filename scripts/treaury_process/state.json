@@ -1,7 +1,7 @@
 {
-  "proposalId": "2",
+  "proposalId": "1",
   "proposer": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
-  "token": "0xC9018b6009Ac20D85a03464c052Bff6d84715BD9",
+  "token": "0x792D5323D24CCAFb17A6Ffd8e1C353932dB2b3b8",
   "asset": {
     "name": "Mock USD",
     "symbol": "mUSD",
@@ -10,8 +10,8 @@
   "target": "0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
   "amount": "250",
   "description": "Treasury proposal to transfer 250 mUSD to 0xBeDb55Dac85cdc6a8276215199f96030902B1Dd0",
-  "startTime": "2026-07-06 20:29:50 Asia/Shanghai",
-  "endTime": "2026-07-06 20:31:50 Asia/Shanghai",
+  "startTime": "2026-09-04 21:11:19 Asia/Shanghai",
+  "endTime": "2026-09-04 21:13:19 Asia/Shanghai",
   "votes": [
     {
       "voter": "0x05D888e9A58d8e9444c7Abf3C6653AA02313fD15",
@@ -47,13 +47,13 @@
   "forVotes": "400",
   "againstVotes": "100",
   "totalVotes": "500",
-  "votedAt": "2026-07-06 20:30:48 Asia/Shanghai",
+  "votedAt": "2026-09-04 21:12:30 Asia/Shanghai",
   "executed": true,
-  "executedAt": "2026-07-06 20:32:22 Asia/Shanghai",
+  "executedAt": "2026-09-04 21:13:26 Asia/Shanghai",
   "proposalState": 4,
   "targetBalanceBefore": "0",
   "targetBalanceAfter": "250",
-  "treasuryBalanceBefore": "9051",
-  "treasuryBalanceAfter": "8801",
+  "treasuryBalanceBefore": "3168",
+  "treasuryBalanceAfter": "2918",
   "executedAmount": "250"
 }

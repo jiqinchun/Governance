@@ -4,19 +4,48 @@ const path = require("path");
 
 const DEPLOYED_PATH = path.join(__dirname, "upgrade_process", "deployed.json");
 const PARAMETER_MAP_PATH = path.join(__dirname, "parameter-id-map.json");
-const STATE_PATH = path.join(__dirname, "offchain-executor-state.json");
+const STATE_PATH =
+  process.env.EXECUTOR_STATE_PATH ||
+  path.join(__dirname, "offchain-executor-state.json");
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 10_000);
 const CONFIRMATIONS = Number(process.env.CONFIRMATIONS || 1);
 const START_BLOCK = Number(process.env.START_BLOCK || 710);
 const RUN_ONCE = process.env.RUN_ONCE === "1";
 const DRY_RUN = process.env.DRY_RUN === "1";
+const FROM_BLOCK_OVERRIDE = process.env.FROM_BLOCK_OVERRIDE
+  ? Number(process.env.FROM_BLOCK_OVERRIDE)
+  : null;
 
-const RPC_METHOD = process.env.EXECUTOR_RPC_METHOD || "governance_applyParameterUpdate";
-const RPC_URLS = (process.env.EXECUTOR_RPC_URLS || "http://47.243.174.71:36054")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const DEFAULT_RPC_URLS = parseUrlList(
+  process.env.EXECUTOR_RPC_URLS || "http://47.243.174.71:36054"
+);
+const DEFAULT_RPC_METHOD =
+  process.env.EXECUTOR_RPC_METHOD || "governance_applyParameterUpdate";
+
+function parseUrlList(value) {
+  return (value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function zoneEnvPrefix(zone) {
+  return String(zone || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "_");
+}
+
+function getZoneRpcUrls(zone) {
+  const envName = `${zoneEnvPrefix(zone)}_RPC_URLS`;
+  const zoneUrls = parseUrlList(process.env[envName]);
+  return zoneUrls.length > 0 ? zoneUrls : DEFAULT_RPC_URLS;
+}
+
+function getZoneRpcMethod(zone) {
+  const envName = `${zoneEnvPrefix(zone)}_RPC_METHOD`;
+  return process.env[envName] || DEFAULT_RPC_METHOD;
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,8 +60,8 @@ function ensureFile(filePath, defaultValue) {
 function loadJSON(filePath) {
   const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
   if (filePath.includes("executor-state.json")) {
-    if (data.lastProcessedBlock < 710) {
-      data.lastProcessedBlock = 710;
+    if (data.lastProcessedBlock < START_BLOCK) {
+      data.lastProcessedBlock = START_BLOCK;
     }
   }
   return data;
@@ -144,20 +173,35 @@ function buildPayload(eventArgs, eventMeta, chainId, parameterMeta, blockTimesta
   };
 }
 
-async function dispatchToExecutionLayer(payload) {
-  if (payload.zone !== "execution") {
-    console.log(`[SKIP] Ignoring non-execution zone payload for zone: ${payload.zone}`);
+async function dispatchToZone(payload) {
+  const rpcUrls = getZoneRpcUrls(payload.zone);
+  const rpcMethod = getZoneRpcMethod(payload.zone);
+
+  if (rpcUrls.length === 0) {
+    console.log(`[SKIP] no rpc urls configured for zone=${payload.zone}`);
     return;
   }
 
   if (DRY_RUN) {
-    console.log("[DRY_RUN] skip RPC dispatch:", JSON.stringify([payload], null, 2));
+    console.log(
+      "[DRY_RUN] skip RPC dispatch:",
+      JSON.stringify(
+        {
+          zone: payload.zone,
+          method: rpcMethod,
+          urls: rpcUrls,
+          payload
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
-  for (const url of RPC_URLS) {
-    const result = await sendJsonRpc(url, RPC_METHOD, [payload]);
-    console.log(`[RPC_OK] ${url} =>`, result);
+  for (const url of rpcUrls) {
+    const result = await sendJsonRpc(url, rpcMethod, [payload]);
+    console.log(`[RPC_OK] zone=${payload.zone} ${url} =>`, result);
   }
 }
 
@@ -178,7 +222,7 @@ async function handleEvent(evt, provider, chainId, parameterMap) {
     `[EVENT] proposal=${payload.proposalId} parameter=${payload.parameterName} zone=${payload.zone} block=${payload.blockNumber}`
   );
 
-  await dispatchToExecutionLayer(payload);
+  await dispatchToZone(payload);
 }
 
 function nextQueryToBlock(latestBlock) {
@@ -211,16 +255,22 @@ async function main() {
   console.log("Off-chain parameter executor started");
   console.log("- chainId:", Number(chainId));
   console.log("- registry:", deployed.paramRegistry);
-  console.log("- rpc urls:", RPC_URLS);
+  console.log("- default rpc urls:", DEFAULT_RPC_URLS);
   console.log("- start cursor:", state);
+  if (FROM_BLOCK_OVERRIDE !== null) {
+    console.log("- from block override:", FROM_BLOCK_OVERRIDE);
+  }
   console.log("- dry run:", DRY_RUN);
 
   while (true) {
     try {
       const latestBlock = await provider.getBlockNumber();
       const toBlock = nextQueryToBlock(latestBlock);
-    //   const fromBlock = Number(state.lastProcessedBlock)
-      const fromBlock = 0;
+      const cursorBlock = Number(state.lastProcessedBlock || START_BLOCK);
+      const fromBlock =
+        FROM_BLOCK_OVERRIDE !== null
+          ? FROM_BLOCK_OVERRIDE
+          : Math.max(START_BLOCK, cursorBlock);
 
       if (toBlock < fromBlock) {
         if (RUN_ONCE) break;
@@ -250,9 +300,11 @@ async function main() {
 
         await handleEvent(evt, provider, chainId, parameterMap);
 
-        state.lastProcessedBlock = evt.blockNumber;
-        state.lastProcessedLogIndex = eventLogIndex;
-        fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
+        if (!DRY_RUN) {
+          state.lastProcessedBlock = evt.blockNumber;
+          state.lastProcessedLogIndex = eventLogIndex;
+          fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
+        }
       }
 
       if (RUN_ONCE) {

@@ -245,7 +245,7 @@ const route = useRoute()
 const { account, chainId, shortAddress: connectedShortAddress, connect, getSigner } = useWallet()
 
 const RPC_URL = 'http://47.243.174.71:36054'
-const PUNKCHAIN_CHAIN_ID = '0x1352642'
+const PUNKCHAIN_CHAIN_ID = '0x1352826'
 const PUNKCHAIN_NETWORK = {
   chainId: PUNKCHAIN_CHAIN_ID,
   chainName: 'PunkChain',

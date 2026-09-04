@@ -17,6 +17,10 @@ function readJsonArray(filePath) {
   return parsed;
 }
 
+function getPayloadParams(record) {
+  return Array.isArray(record.params) ? record.params[0] : record.params;
+}
+
 function validateRecord(record, filePath, idx) {
   if (!record || typeof record !== "object") {
     throw new Error(`invalid record at ${filePath}[${idx}]`);
@@ -26,7 +30,7 @@ function validateRecord(record, filePath, idx) {
     throw new Error(`unexpected rpc method at ${filePath}[${idx}]: ${record.method}`);
   }
 
-  const p = record.params;
+  const p = getPayloadParams(record);
   if (!p || typeof p !== "object") {
     throw new Error(`missing params at ${filePath}[${idx}]`);
   }
@@ -73,8 +77,8 @@ function main() {
     summary.push({
       file: fullPath,
       count: data.length,
-      latestProposalId: String(data[data.length - 1].params.proposalId),
-      latestParameter: data[data.length - 1].params.parameterName
+      latestProposalId: String(getPayloadParams(data[data.length - 1]).proposalId),
+      latestParameter: getPayloadParams(data[data.length - 1]).parameterName
     });
   }
 

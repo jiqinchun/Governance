@@ -7,6 +7,7 @@ const script = (name) => path.join(ROOT, "scripts", name);
 
 const captureA = script("mock-rpc-9090.json");
 const captureB = script("mock-rpc-9091.json");
+const stateFile = script("offchain-executor-state.localtest.json");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,6 +54,7 @@ function runCommand(command, env = {}) {
 async function main() {
   removeIfExists(captureA);
   removeIfExists(captureB);
+  removeIfExists(stateFile);
 
   const mockA = startMockServer(9090, captureA);
   const mockB = startMockServer(9091, captureB);
@@ -64,7 +66,9 @@ async function main() {
       RUN_ONCE: "1",
       DRY_RUN: "0",
       FROM_BLOCK_OVERRIDE: "0",
-      EXECUTOR_RPC_URLS: "http://127.0.0.1:9090/rpc,http://127.0.0.1:9091/rpc",
+      EXECUTOR_STATE_PATH: stateFile,
+      EXECUTION_RPC_URLS: "http://127.0.0.1:9090/rpc",
+      STORAGE_RPC_URLS: "http://127.0.0.1:9091/rpc",
       EXECUTOR_RPC_METHOD: "governance.applyParameterUpdate"
     });
 
